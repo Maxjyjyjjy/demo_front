@@ -11,8 +11,11 @@
         <div
           v-for="course in courseModules"
           :key="course.id"
-          class="p-4 rounded-2xl border shadow-sm cursor-grab active:cursor-grabbing transition-colors"
-          :class="courseCardClass(course.color)"
+          draggable="true"
+          class="p-4 rounded-2xl border shadow-sm cursor-grab active:cursor-grabbing transition-colors select-none"
+          :class="[courseCardClass(course.color), { 'opacity-60 scale-[0.98]': draggingModuleId === course.id }]"
+          @dragstart="onModuleDragStart($event, course)"
+          @dragend="onModuleDragEnd"
         >
           <div class="flex justify-between items-start">
             <div>
@@ -54,11 +57,12 @@
       </button>
     </div>
 
-    <!-- 时间轴 -->
+    <!-- 时间轴（支持从上方拖入课程模块） -->
     <div class="relative bg-white rounded-[32px] shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-surface-container-high p-6">
+      <p v-if="dropHint" class="text-label-sm text-primary text-center -mt-1 mb-3">{{ dropHint }}</p>
       <div class="flex flex-col">
         <div
-          v-for="(slot, index) in timeSlots"
+          v-for="slot in timeSlots"
           :key="slot.hour"
           class="relative flex border-t border-surface-container-highest/50 pt-3"
           :class="slotHasEvent(slot.hour) ? 'min-h-[100px]' : 'h-[100px]'"
@@ -68,7 +72,14 @@
             <span class="text-label-sm text-on-surface-variant/60">{{ slot.label }}</span>
           </div>
 
-          <div class="flex-grow relative">
+          <div
+            class="flex-grow relative min-h-[84px] rounded-xl transition-[box-shadow,background-color] -mx-1 px-1"
+            :class="dropTargetHour === slot.hour
+              ? 'ring-2 ring-primary/40 ring-inset bg-primary/5'
+              : ''"
+            @dragover.prevent="onSlotDragOver($event, slot.hour)"
+            @drop.prevent="onDropOnSlot($event, slot.hour)"
+          >
             <!-- 已排课程 -->
             <div
               v-if="getEventAt(slot.hour)"
@@ -113,9 +124,9 @@
               </div>
             </div>
 
-            <!-- 休息时间 -->
+            <!-- 休息时间（该时段无课程时显示） -->
             <div
-              v-if="slot.hour === 12"
+              v-if="slot.hour === 12 && !getEventAt(12)"
               class="flex items-center justify-center h-full"
             >
               <div class="bg-surface-container-low px-4 py-1 rounded-full text-on-surface-variant/40 flex items-center gap-2">
@@ -197,6 +208,86 @@ const courseModules = ref([
   { id: 3, name: '书法', category: 'Skill', color: 'green' }
 ])
 
+const draggingModuleId = ref(null)
+const dropTargetHour = ref(null)
+const dropHint = ref('')
+const nextEventId = ref(100)
+
+const DRAG_MIME = 'application/x-demo-course-module'
+
+function formatTime(hour, minute = 0) {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function onModuleDragStart(e, course) {
+  draggingModuleId.value = course.id
+  dropHint.value = '将模块拖到下方对应时间段'
+  try {
+    const payload = JSON.stringify({
+      id: course.id,
+      name: course.name,
+      category: course.category,
+      color: course.color
+    })
+    e.dataTransfer.setData(DRAG_MIME, payload)
+    e.dataTransfer.setData('text/plain', course.name)
+  } catch {
+    /* ignore */
+  }
+  e.dataTransfer.effectAllowed = 'copy'
+}
+
+function onModuleDragEnd() {
+  draggingModuleId.value = null
+  dropTargetHour.value = null
+  dropHint.value = ''
+}
+
+function onSlotDragOver(e, hour) {
+  if (!draggingModuleId.value) return
+  e.dataTransfer.dropEffect = 'copy'
+  dropTargetHour.value = hour
+}
+
+function onDropOnSlot(e, hour) {
+  const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain')
+  if (!raw) {
+    onModuleDragEnd()
+    return
+  }
+  let mod
+  try {
+    mod = raw.startsWith('{') ? JSON.parse(raw) : { name: raw, color: 'blue', id: 0, category: '' }
+  } catch {
+    onModuleDragEnd()
+    return
+  }
+  if (!mod.name) {
+    onModuleDragEnd()
+    return
+  }
+
+  const duration = 1
+  const endH = hour + duration
+  const newEvent = {
+    id: nextEventId.value++,
+    name: mod.name,
+    startTime: formatTime(hour, 0),
+    endTime: formatTime(endH, 0),
+    startHour: hour,
+    duration,
+    color: mod.color || 'blue',
+    status: null,
+    location: null,
+    description: null,
+    moduleId: mod.id
+  }
+
+  const rest = scheduledEvents.value.filter((ev) => ev.startHour !== hour)
+  scheduledEvents.value = [...rest, newEvent]
+  onModuleDragEnd()
+}
+
 const scheduledEvents = ref([
   {
     id: 1,
@@ -251,7 +342,9 @@ function courseCardClass(color) {
   const map = {
     blue: 'course-card-blue',
     pink: 'course-card-pink',
-    green: 'course-card-green'
+    green: 'course-card-green',
+    yellow: 'course-card-yellow',
+    purple: 'course-card-purple'
   }
   return map[color] || map.blue
 }
@@ -260,7 +353,9 @@ function courseTextClass(color) {
   const map = {
     blue: 'text-on-primary-container',
     pink: 'text-on-tertiary-container',
-    green: 'text-on-secondary-container'
+    green: 'text-on-secondary-container',
+    yellow: 'text-amber-900',
+    purple: 'text-purple-900'
   }
   return map[color] || map.blue
 }
@@ -269,7 +364,9 @@ function eventCardClass(event) {
   const map = {
     blue: 'bg-primary-container border-primary',
     pink: 'bg-tertiary-container border-tertiary',
-    green: 'bg-secondary-container border-secondary'
+    green: 'bg-secondary-container border-secondary',
+    yellow: 'bg-yellow-pastel border-amber-500',
+    purple: 'bg-purple-pastel border-purple-500'
   }
   return map[event.color] || map.blue
 }
@@ -278,7 +375,9 @@ function eventTextClass(event) {
   const map = {
     blue: 'text-on-primary-container',
     pink: 'text-on-tertiary-container',
-    green: 'text-on-secondary-container'
+    green: 'text-on-secondary-container',
+    yellow: 'text-amber-900',
+    purple: 'text-purple-900'
   }
   return map[event.color] || map.blue
 }
@@ -287,7 +386,9 @@ function eventDotClass(event) {
   const map = {
     blue: 'bg-primary',
     pink: 'bg-tertiary',
-    green: 'bg-secondary'
+    green: 'bg-secondary',
+    yellow: 'bg-amber-600',
+    purple: 'bg-purple-600'
   }
   return map[event.color] || map.blue
 }

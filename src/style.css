@@ -143,6 +143,20 @@
 .course-card-green:hover {
   background-color: color-mix(in srgb, var(--color-secondary-container) 60%, transparent);
 }
+.course-card-yellow {
+  background-color: color-mix(in srgb, var(--color-yellow-pastel) 50%, transparent);
+  border-color: color-mix(in srgb, #c9a227 50%, transparent);
+}
+.course-card-yellow:hover {
+  background-color: color-mix(in srgb, var(--color-yellow-pastel) 80%, transparent);
+}
+.course-card-purple {
+  background-color: color-mix(in srgb, var(--color-purple-pastel) 50%, transparent);
+  border-color: color-mix(in srgb, #7b61b5 50%, transparent);
+}
+.course-card-purple:hover {
+  background-color: color-mix(in srgb, var(--color-purple-pastel) 80%, transparent);
+}
 
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
