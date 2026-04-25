@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#285f80",
+                    "secondary": "#2f6a3f",
+                    "on-primary-fixed-variant": "#0c4b6c",
+                    "inverse-primary": "#9accf3",
+                    "on-primary-fixed": "#001e2f",
+                    "surface-dim": "#d9dadd",
+                    "tertiary": "#75565f",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-container": "#f0c8d2",
+                    "surface-container-low": "#f3f3f6",
+                    "surface": "#f9f9fc",
+                    "primary-fixed": "#c9e6ff",
+                    "on-tertiary-fixed": "#2b151c",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "inverse-on-surface": "#f0f0f4",
+                    "on-secondary-fixed-variant": "#145129",
+                    "secondary-fixed-dim": "#96d5a0",
+                    "on-tertiary-fixed-variant": "#5b3f47",
+                    "on-surface": "#191c1e",
+                    "surface-container": "#edeef1",
+                    "on-background": "#191c1e",
+                    "secondary-fixed": "#b2f2bb",
+                    "surface-container-highest": "#e1e2e5",
+                    "error-container": "#ffdad6",
+                    "surface-variant": "#e1e2e5",
+                    "on-secondary-container": "#357044",
+                    "on-surface-variant": "#41484d",
+                    "primary-container": "#a5d8ff",
+                    "primary": "#2e6385",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#e4bcc6",
+                    "primary-fixed-dim": "#9accf3",
+                    "surface-bright": "#f9f9fc",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-container": "#70525a",
+                    "tertiary-fixed": "#ffd9e2",
+                    "on-secondary-fixed": "#00210b",
+                    "surface-tint": "#2e6385",
+                    "on-error": "#ffffff",
+                    "inverse-surface": "#2e3133",
+                    "background": "#f9f9fc",
+                    "outline": "#71787e",
+                    "outline-variant": "#c1c7ce",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#e7e8eb",
+                    "secondary-container": "#b2f2bb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-padding": "20px",
+                    "gutter": "12px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "lg": "24px",
+                    "md": "16px",
+                    "unit": "4px",
+                    "xs": "4px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Plus Jakarta Sans"],
+                    "body-md": ["Plus Jakarta Sans"],
+                    "h3": ["Plus Jakarta Sans"],
+                    "label-xs": ["Plus Jakarta Sans"],
+                    "label-sm": ["Plus Jakarta Sans"],
+                    "h1": ["Plus Jakarta Sans"],
+                    "h2": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "h3": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "label-xs": ["10px", {"lineHeight": "12px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                    "h1": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "h2": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .modal-blur {
+            backdrop-filter: blur(12px);
+            background-color: rgba(249, 249, 252, 0.7);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body-md text-on-surface">
+<!-- Top App Bar (Shared Component Anchor) -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-5 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-blue-50/50 dark:border-slate-800 shadow-sm shadow-blue-100/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-400" data-icon="calendar_today">calendar_today</span>
+<h1 class="font-['Plus_Jakarta_Sans'] text-lg font-semibold tracking-tight text-on-surface">Today's Schedule</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-50/50 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-slate-400" data-icon="more_vert">more_vert</span>
+</button>
+</header>
+<!-- Background Content (Simulating Schedule) -->
+<main class="pt-24 pb-32 px-container-padding max-w-lg mx-auto space-y-6">
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<span class="text-label-sm text-outline">09:00</span>
+<div class="flex-1 bg-primary-container/30 p-4 rounded-[16px] border border-primary-container/20">
+<div class="flex justify-between items-start">
+<h3 class="font-h3 text-primary">英语口语</h3>
+<span class="material-symbols-outlined text-primary/40 text-sm" data-icon="drag_handle">drag_handle</span>
+</div>
+<p class="text-body-md text-on-primary-container">Room 402</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-label-sm text-outline">10:30</span>
+<div class="flex-1 bg-secondary-container/30 p-4 rounded-[16px] border border-secondary-container/20">
+<div class="flex justify-between items-start">
+<h3 class="font-h3 text-secondary">高等数学</h3>
+<span class="material-symbols-outlined text-secondary/40 text-sm" data-icon="drag_handle">drag_handle</span>
+</div>
+<p class="text-body-md text-on-secondary-container">Library Hall</p>
+</div>
+</div>
+<!-- Bento-style Stats Grid -->
+<div class="grid grid-cols-2 gap-4 mt-8">
+<div class="bg-white p-4 rounded-[24px] shadow-sm flex flex-col gap-2">
+<span class="material-symbols-outlined text-tertiary" data-icon="auto_awesome">auto_awesome</span>
+<p class="text-label-sm text-outline">Daily Progress</p>
+<p class="font-h2 text-on-surface">65%</p>
+</div>
+<div class="bg-white p-4 rounded-[24px] shadow-sm flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="timer">timer</span>
+<p class="text-label-sm text-outline">Study Hours</p>
+<p class="font-h2 text-on-surface">4.5h</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Backdrop Blur Layer -->
+<div class="fixed inset-0 z-[60] modal-blur flex items-center justify-center p-6">
+<!-- Modal Container -->
+<div class="w-full max-w-sm bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden border border-white">
+<div class="p-8">
+<!-- Header -->
+<div class="mb-8">
+<h2 class="font-h2 text-on-surface text-center">新增课程模块</h2>
+<p class="text-body-md text-outline text-center mt-1">为您的日程添加一个新的活动</p>
+</div>
+<!-- Input Section -->
+<div class="space-y-6">
+<div class="space-y-2">
+<label class="text-label-sm text-outline ml-1">课程名称</label>
+<input class="w-full h-14 px-5 bg-surface-container-low border-none rounded-2xl text-body-lg focus:ring-2 focus:ring-primary/20 placeholder:text-outline-variant transition-all" placeholder="请输入课程名称 (如：钢琴)" type="text"/>
+</div>
+<!-- Color Picker Section -->
+<div class="space-y-3">
+<label class="text-label-sm text-outline ml-1">背景颜色</label>
+<div class="flex justify-between items-center px-2">
+<!-- Blue -->
+<button aria-label="Blue" class="w-10 h-10 rounded-full bg-primary-container ring-offset-2 ring-2 ring-primary transition-transform active:scale-90"></button>
+<!-- Pink -->
+<button aria-label="Pink" class="w-10 h-10 rounded-full bg-tertiary-container ring-offset-2 hover:ring-2 hover:ring-tertiary/30 transition-transform active:scale-90"></button>
+<!-- Green -->
+<button aria-label="Green" class="w-10 h-10 rounded-full bg-secondary-container ring-offset-2 hover:ring-2 hover:ring-secondary/30 transition-transform active:scale-90"></button>
+<!-- Yellow -->
+<button aria-label="Yellow" class="w-10 h-10 rounded-full bg-[#FFF4D6] ring-offset-2 hover:ring-2 hover:ring-yellow-400/30 transition-transform active:scale-90"></button>
+<!-- Purple -->
+<button aria-label="Purple" class="w-10 h-10 rounded-full bg-[#EADDFF] ring-offset-2 hover:ring-2 hover:ring-purple-400/30 transition-transform active:scale-90"></button>
+</div>
+</div>
+</div>
+<!-- Actions Section -->
+<div class="mt-10 flex flex-col gap-3">
+<button class="w-full h-14 bg-primary text-white font-h3 rounded-full shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
+                        保存
+                    </button>
+<button class="w-full h-12 text-outline font-body-lg rounded-full hover:bg-surface-container transition-colors active:scale-[0.98]">
+                        取消
+                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Nav Bar (Shared Component Anchor) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-6 pb-6 pt-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-blue-50/30 dark:border-slate-800 shadow-[0_-4px_20px_rgba(165,216,255,0.1)] rounded-t-[32px]">
+<div class="flex flex-col items-center justify-center text-blue-500 dark:text-blue-300 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl px-5 py-2 transition-all duration-300 ease-out active:scale-90">
+<span class="material-symbols-outlined" data-icon="event_note">event_note</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium">Schedule</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 transition-all duration-300 ease-out active:scale-90 hover:text-blue-400">
+<span class="material-symbols-outlined" data-icon="category">category</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium">Library</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 transition-all duration-300 ease-out active:scale-90 hover:text-blue-400">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium">Profile</span>
+</div>
+</nav>
+</body></html>
