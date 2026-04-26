@@ -71,37 +71,7 @@
       </div>
     </section>
 
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-2 gap-3">
-      <div class="bg-primary-container/30 p-4 rounded-3xl border border-primary-container/20">
-        <div class="flex items-center gap-2 mb-2">
-          <div class="w-2 h-2 rounded-full bg-primary"></div>
-          <span class="text-label-sm text-on-primary-container">Major Courses</span>
-        </div>
-        <p class="text-h2 text-primary">12 Sessions</p>
-      </div>
-      <div class="bg-secondary-container/30 p-4 rounded-3xl border border-secondary-container/20">
-        <div class="flex items-center gap-2 mb-2">
-          <div class="w-2 h-2 rounded-full bg-secondary"></div>
-          <span class="text-label-sm text-on-secondary-container">Lab Works</span>
-        </div>
-        <p class="text-h2 text-secondary">4 Sessions</p>
-      </div>
-    </div>
-
-    <!-- 今日预览卡片 -->
-    <div class="p-5 bg-white rounded-3xl shadow-sm flex items-center gap-4">
-      <div class="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center">
-        <span class="material-symbols-outlined text-primary">event_repeat</span>
-      </div>
-      <div class="flex-grow">
-        <p class="text-label-sm text-outline">Upcoming Today</p>
-        <h3 class="text-body-lg font-semibold text-on-surface">Advanced UI Design Lab</h3>
-      </div>
-      <span class="material-symbols-outlined text-outline-variant">chevron_right</span>
-    </div>
-
-    <!-- 跳至今天按钮 -->
+    <!-- 跳至今天：进入 Schedule 主页并切到今天 -->
     <div class="fixed bottom-[92px] left-0 w-full px-5 z-40">
       <button
         class="w-full h-14 rounded-full bg-primary text-on-primary text-h3 shadow-lg flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
@@ -111,13 +81,6 @@
         跳至今天
       </button>
     </div>
-
-    <!-- FAB -->
-    <button
-      class="fixed bottom-32 right-6 w-14 h-14 rounded-2xl bg-primary text-on-primary shadow-xl flex items-center justify-center active:scale-90 transition-transform duration-200 z-40"
-    >
-      <span class="material-symbols-outlined">add</span>
-    </button>
   </div>
 </template>
 
@@ -129,9 +92,9 @@ import { useRoute } from 'vue-router'
 const router = useRouter()
 const route = useRoute()
 
-const today = new Date(2026, 3, 9)
-const currentYear = ref(2026)
-const currentMonth = ref(3)
+const _initial = new Date()
+const currentYear = ref(_initial.getFullYear())
+const currentMonth = ref(_initial.getMonth())
 const selectedDay = ref(null)
 
 const monthNames = [
@@ -169,10 +132,11 @@ function nextMonth() {
 }
 
 function isToday(day) {
+  const t = new Date()
   return (
-    currentYear.value === today.getFullYear() &&
-    currentMonth.value === today.getMonth() &&
-    day === today.getDate()
+    currentYear.value === t.getFullYear() &&
+    currentMonth.value === t.getMonth() &&
+    day === t.getDate()
   )
 }
 
@@ -211,13 +175,17 @@ function selectDate(day) {
   selectedDay.value = day
   const d = new Date(currentYear.value, currentMonth.value, day)
   const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  router.push({ path: '/', query: { date: iso } })
+  const returnTo = typeof route.query?.returnTo === 'string' && route.query.returnTo ? route.query.returnTo : '/'
+  router.push({ path: returnTo, query: { date: iso } })
+}
+
+function toIso(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function jumpToToday() {
-  currentYear.value = today.getFullYear()
-  currentMonth.value = today.getMonth()
-  selectedDay.value = today.getDate()
+  const iso = toIso(new Date())
+  router.push({ path: '/', query: { date: iso } })
 }
 
 function applyFromQuery() {

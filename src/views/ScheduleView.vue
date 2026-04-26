@@ -200,7 +200,7 @@ function parseQueryDate(value) {
   return d
 }
 
-const currentDate = ref(parseQueryDate(route.query?.date) || new Date(2026, 3, 25))
+const currentDate = ref(parseQueryDate(route.query?.date) || new Date())
 
 const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 
@@ -218,7 +218,7 @@ function changeDate(offset) {
 function goToCalendar() {
   const d = currentDate.value
   const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  router.push({ path: '/calendar', query: { date: iso } })
+  router.push({ path: '/calendar', query: { date: iso, returnTo: route.path } })
 }
 
 watch(

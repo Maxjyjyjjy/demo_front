@@ -1,14 +1,14 @@
 <template>
-  <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 backdrop-blur-xl border-t border-blue-50/50 shadow-[0_-8px_24px_-4px_rgba(165,216,255,0.2)] rounded-t-[32px]">
+  <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-3 pb-3 pt-1.5 bg-white/90 backdrop-blur-xl border-t border-blue-50/50 shadow-[0_-6px_16px_-6px_rgba(165,216,255,0.18)] rounded-t-[20px]">
     <router-link
       v-for="item in navItems"
       :key="item.name"
       :to="item.path"
-      class="flex flex-col items-center justify-center px-6 py-2 rounded-2xl transition-all duration-300 ease-out active:scale-90"
+      class="flex flex-col items-center justify-center px-3 py-1 rounded-2xl transition-all duration-300 ease-out active:scale-90"
       :class="isActive(item.path) ? activeClass(item) : inactiveClass"
     >
-      <span class="material-symbols-outlined" :class="isActive(item.path) ? 'icon-filled' : ''">{{ item.icon }}</span>
-      <span class="text-[12px] font-medium mt-1">{{ item.label }}</span>
+      <span class="material-symbols-outlined text-[20px] leading-none" :class="isActive(item.path) ? 'icon-filled' : ''">{{ item.icon }}</span>
+      <span class="text-[10px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
     </router-link>
   </nav>
 </template>

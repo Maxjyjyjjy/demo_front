@@ -57,6 +57,20 @@
       </div>
     </section>
 
+    <!-- 日期控制器（与 Schedule 一致） -->
+    <div class="flex items-center justify-between bg-white p-2 rounded-full shadow-sm border border-blue-50/50">
+      <button class="p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-colors" @click="changeDate(-1)">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+      <div class="flex items-center gap-3 cursor-pointer" @click="goToCalendar">
+        <span class="material-symbols-outlined text-blue-400">calendar_month</span>
+        <span class="text-body-lg font-semibold text-on-surface">{{ formattedDate }}</span>
+      </div>
+      <button class="p-2 hover:bg-blue-50 rounded-full text-blue-500 transition-colors" @click="changeDate(1)">
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+    </div>
+
     <!-- 时间表（可放多个作业） -->
     <section class="flex-grow flex flex-col min-w-0">
       <div class="relative bg-white rounded-[32px] shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-surface-container-high p-6 overflow-hidden">
@@ -127,23 +141,23 @@
         <div
           v-for="t in quickTasks"
           :key="t.id"
-          class="flex items-center gap-4 p-4 bg-surface-container-low rounded-[16px] border border-transparent active:scale-[0.98] transition-all relative"
+          class="flex items-center gap-3 pl-4 pr-9 pt-2.5 pb-3 bg-surface-container-low rounded-[16px] border border-transparent active:scale-[0.98] transition-all relative"
         >
-          <div class="w-6 h-6 rounded-full border-2 border-primary-container flex items-center justify-center">
+          <div class="w-6 h-6 shrink-0 rounded-full border-2 border-primary-container flex items-center justify-center">
             <div class="w-3 h-3 rounded-full bg-primary-container"></div>
           </div>
-          <div class="flex-1">
+          <div class="flex-1 min-w-0 pr-1">
             <p class="text-body-md font-semibold text-on-surface">{{ t.title }}</p>
             <p class="text-label-xs text-on-surface-variant uppercase tracking-wider">{{ t.category }}</p>
           </div>
-          <span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+          <span class="material-symbols-outlined text-on-surface-variant shrink-0 text-[20px]">chevron_right</span>
 
           <button
-            class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/55 backdrop-blur-md border border-white/60 shadow-sm flex items-center justify-center active:scale-95 transition-colors hover:bg-white/70"
+            class="absolute top-1.5 right-1.5 z-[1] w-5 h-5 rounded-full bg-white/60 backdrop-blur-md border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-colors hover:bg-white/80"
             @click.stop="confirmDeleteQuickTask(t.id)"
             aria-label="删除 Quick Task"
           >
-            <span class="material-symbols-outlined text-[18px] text-outline">close</span>
+            <span class="material-symbols-outlined text-[14px] leading-none text-outline">close</span>
           </button>
         </div>
       </div>
@@ -164,10 +178,41 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AddHomeworkModal from '../components/AddHomeworkModal.vue'
 import AddQuickTaskModal from '../components/AddQuickTaskModal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { fetchHomeworkFromEmail } from '../services/homeworkService'
+
+const route = useRoute()
+const router = useRouter()
+
+function parseQueryDate(value) {
+  if (typeof value !== 'string' || !value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d
+}
+
+const currentDate = ref(parseQueryDate(route.query?.date) || new Date())
+const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+
+const formattedDate = computed(() => {
+  const d = currentDate.value
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${weekDays[d.getDay()]}`
+})
+
+function changeDate(offset) {
+  const d = new Date(currentDate.value)
+  d.setDate(d.getDate() + offset)
+  currentDate.value = d
+}
+
+function goToCalendar() {
+  const d = currentDate.value
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  router.push({ path: '/calendar', query: { date: iso, returnTo: '/homework' } })
+}
 
 const dropHint = ref('')
 const dropTargetKey = ref(null)
@@ -189,6 +234,16 @@ async function scrollToDefaultHour() {
   if (!el) return
   el.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'start' })
 }
+
+watch(
+  () => route.query?.date,
+  (v) => {
+    const d = parseQueryDate(v)
+    if (!d) return
+    currentDate.value = d
+    scrollToDefaultHour()
+  }
+)
 
 const homeworkSchedule = ref({})
 let nextScheduleId = 1

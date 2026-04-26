@@ -1,3 +1,5 @@
+import { get } from '../utils/request.js'
+
 const MOCK_HOMEWORK = [
   {
     id: 'mail-1',
@@ -37,9 +39,9 @@ const MOCK_HOMEWORK = [
  * { id, title, course, receivedAt, dueAt, color? }
  */
 export async function fetchHomeworkFromEmail() {
-  // TODO: replace with real backend call, e.g.:
-  // const res = await fetch('/api/homework/from-email')
-  // return await res.json()
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return get('/api/homework/from-email')
+  }
 
   const list = [...MOCK_HOMEWORK]
   list.sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt))
