@@ -94,6 +94,7 @@
               </button>
               <button
                 class="w-full py-4 text-error text-h3 rounded-full hover:bg-error-container/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1"
+                @click="removeCourse"
               >
                 <span class="material-symbols-outlined">delete_outline</span>
                 移出日程
@@ -109,12 +110,12 @@
 <script setup>
 import { ref } from 'vue'
 
-defineProps({
+const props = defineProps({
   visible: Boolean,
   course: Object
 })
 
-defineEmits(['close'])
+const emit = defineEmits(['close', 'remove'])
 
 const reminderOptions = [
   { label: '不提醒', value: 0 },
@@ -125,4 +126,10 @@ const reminderOptions = [
 
 const selectedReminder = ref(10)
 const notes = ref('')
+
+function removeCourse() {
+  if (!props.course?.id) return
+  emit('remove', props.course.id)
+  emit('close')
+}
 </script>

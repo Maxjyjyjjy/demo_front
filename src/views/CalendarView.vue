@@ -51,6 +51,10 @@
           @click="selectDate(day)"
         >
           <div
+            v-if="selectedDay === day && !isToday(day)"
+            class="absolute inset-2 bg-primary-container/50 rounded-2xl"
+          ></div>
+          <div
             v-if="isToday(day)"
             class="absolute inset-2 bg-primary rounded-2xl shadow-lg"
           ></div>
@@ -118,14 +122,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 
 const today = new Date(2026, 3, 9)
 const currentYear = ref(2026)
 const currentMonth = ref(3)
+const selectedDay = ref(null)
 
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -176,6 +183,7 @@ function isWeekend(day) {
 
 function getDayTextClass(day) {
   if (isToday(day)) return 'text-on-primary'
+  if (selectedDay.value === day) return 'text-on-primary-container'
   if (isWeekend(day)) return 'text-on-surface-variant'
   return 'text-on-surface'
 }
@@ -200,11 +208,28 @@ function getDotColor(day) {
 }
 
 function selectDate(day) {
-  router.push('/')
+  selectedDay.value = day
+  const d = new Date(currentYear.value, currentMonth.value, day)
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  router.push({ path: '/', query: { date: iso } })
 }
 
 function jumpToToday() {
   currentYear.value = today.getFullYear()
   currentMonth.value = today.getMonth()
+  selectedDay.value = today.getDate()
 }
+
+function applyFromQuery() {
+  const q = route.query?.date
+  if (typeof q !== 'string' || !q) return
+  const d = new Date(q)
+  if (Number.isNaN(d.getTime())) return
+  currentYear.value = d.getFullYear()
+  currentMonth.value = d.getMonth()
+  selectedDay.value = d.getDate()
+}
+
+applyFromQuery()
+watch(() => route.query?.date, applyFromQuery)
 </script>

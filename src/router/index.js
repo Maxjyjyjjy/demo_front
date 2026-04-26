@@ -12,14 +12,13 @@ const routes = [
     component: () => import('../views/CalendarView.vue')
   },
   {
-    path: '/library',
-    name: 'Library',
-    component: () => import('../views/LibraryView.vue')
+    path: '/homework',
+    name: 'Homework',
+    component: () => import('../views/HomeworkView.vue')
   },
   {
-    path: '/profile',
-    name: 'Profile',
-    component: () => import('../views/ProfileView.vue')
+    path: '/library',
+    redirect: '/homework'
   }
 ]
 

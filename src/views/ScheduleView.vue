@@ -1,46 +1,70 @@
 <template>
   <div class="px-5 py-4 flex flex-col gap-6">
-    <!-- 课程模块库 -->
-    <section class="bg-surface-container-low rounded-3xl p-4 shadow-sm border border-white">
-      <div class="flex items-center justify-between mb-4 px-2">
-        <h2 class="text-h3 text-on-surface">课程模块</h2>
-        <span class="material-symbols-outlined text-on-surface-variant text-xl">category</span>
-      </div>
-      <div class="flex flex-col gap-2">
-        <!-- 课程卡片 -->
-        <div
-          v-for="course in courseModules"
-          :key="course.id"
-          draggable="true"
-          class="p-4 rounded-2xl border shadow-sm cursor-grab active:cursor-grabbing transition-colors select-none"
-          :class="[courseCardClass(course.color), { 'opacity-60 scale-[0.98]': draggingModuleId === course.id }]"
-          @dragstart="onModuleDragStart($event, course)"
-          @dragend="onModuleDragEnd"
-        >
-          <div class="flex justify-between items-start">
-            <div>
-              <span
-                class="text-label-xs uppercase tracking-wider mb-1 block"
-                :class="courseTextClass(course.color)"
-              >{{ course.category }}</span>
-              <h3 class="text-h3" :class="courseTextClass(course.color)">{{ course.name }}</h3>
-            </div>
+    <ConfirmDialog
+      :visible="confirm.visible"
+      :title="confirm.title"
+      :message="confirm.message"
+      confirm-text="删除"
+      cancel-text="取消"
+      :danger="true"
+      @confirm="runConfirm"
+      @cancel="closeConfirm"
+    />
+
+    <div
+      v-if="toastMessage"
+      class="fixed top-20 left-1/2 -translate-x-1/2 z-[80] px-4 py-2 rounded-full bg-error text-on-error text-label-sm shadow-soft-2"
+      role="status"
+    >
+      {{ toastMessage }}
+    </div>
+
+    <!-- 课程模块（网格） -->
+    <section class="w-full">
+      <div class="bg-surface-container-low rounded-[24px] p-4 shadow-sm border border-white">
+        <div class="flex items-center justify-between mb-4 px-2">
+          <h2 class="text-h3 text-on-surface">课程模块</h2>
+          <span class="material-symbols-outlined text-on-surface-variant text-[20px]">category</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div
+            v-for="course in courseModules"
+            :key="course.id"
+            draggable="true"
+            class="p-2 rounded-[16px] border shadow-sm flex flex-col items-center justify-center aspect-square text-center cursor-grab active:cursor-grabbing transition-colors select-none relative"
+            :class="[moduleGridClass(course.color), { 'opacity-60 scale-[0.98]': draggingModuleId === course.id }]"
+            @dragstart="onModuleDragStart($event, course)"
+            @dragend="onModuleDragEnd"
+            @pointerdown="onModulePointerDown($event, course)"
+            @pointermove="onModulePointerMove($event)"
+            @pointerup="onModulePointerUp"
+            @pointercancel="onModulePointerCancel"
+          >
+            <button
+              class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/55 backdrop-blur-md border border-white/60 shadow-sm flex items-center justify-center active:scale-95 transition-colors hover:bg-white/70"
+              @click.stop="confirmDeleteModule(course.id)"
+              aria-label="删除课程模块"
+            >
+              <span class="material-symbols-outlined text-[16px] text-outline">close</span>
+            </button>
+            <span class="text-label-xs uppercase tracking-tight mb-1 opacity-60" :class="courseTextClass(course.color)">
+              {{ course.category }}
+            </span>
+            <h3 class="font-bold text-sm" :class="courseTextClass(course.color)">{{ course.name }}</h3>
+            <span class="material-symbols-outlined text-[14px] mt-1 opacity-50" :class="courseTextClass(course.color)">
+              drag_indicator
+            </span>
           </div>
-          <div class="mt-2 flex items-center gap-1">
-            <span class="material-symbols-outlined text-sm">drag_indicator</span>
-            <span class="text-label-sm opacity-70" :class="courseTextClass(course.color)">Hold to drag</span>
-          </div>
+
+          <button
+            class="bg-white/40 p-2 rounded-[16px] border-2 border-dashed border-outline-variant/30 flex items-center justify-center aspect-square cursor-pointer hover:bg-white/60 transition-all active:scale-[0.98]"
+            @click="showAddModal = true"
+          >
+            <span class="material-symbols-outlined text-outline/40">add</span>
+          </button>
         </div>
       </div>
-
-      <!-- 新增模块按钮 -->
-      <button
-        class="w-full mt-6 py-3 rounded-full border-2 border-dashed border-outline-variant text-outline flex items-center justify-center gap-2 text-label-sm hover:bg-surface-container-highest hover:text-on-surface-variant transition-all active:scale-[0.98]"
-        @click="showAddModal = true"
-      >
-        <span class="material-symbols-outlined">add</span>
-        新增模块
-      </button>
     </section>
 
     <!-- 日期控制器 -->
@@ -57,133 +81,126 @@
       </button>
     </div>
 
-    <!-- 时间轴（支持从上方拖入课程模块） -->
-    <div class="relative bg-white rounded-[32px] shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-surface-container-high p-6">
-      <p v-if="dropHint" class="text-label-sm text-primary text-center -mt-1 mb-3">{{ dropHint }}</p>
-      <div class="flex flex-col">
-        <div
-          v-for="slot in timeSlots"
-          :key="slot.hour"
-          class="relative flex border-t border-surface-container-highest/50 pt-3"
-          :class="slotHasEvent(slot.hour) ? 'min-h-[100px]' : 'h-[100px]'"
-        >
-          <!-- 时间标签 -->
-          <div class="w-14 shrink-0">
-            <span class="text-label-sm text-on-surface-variant/60">{{ slot.label }}</span>
-          </div>
-
-          <div
-            class="flex-grow relative min-h-[84px] rounded-xl transition-[box-shadow,background-color] -mx-1 px-1"
-            :class="dropTargetHour === slot.hour
-              ? 'ring-2 ring-primary/40 ring-inset bg-primary/5'
-              : ''"
-            @dragover.prevent="onSlotDragOver($event, slot.hour)"
-            @drop.prevent="onDropOnSlot($event, slot.hour)"
+    <!-- 横向时间轴 -->
+    <section class="flex-grow flex flex-col min-w-0">
+      <div class="relative bg-white rounded-[32px] shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-surface-container-high p-6 overflow-hidden">
+        <div class="absolute bottom-4 left-4 z-10">
+          <button
+            class="h-9 px-3 rounded-full text-label-sm border transition-colors"
+            :class="useHalfHour
+              ? 'bg-primary text-on-primary border-primary/30'
+              : 'bg-surface-container-low text-on-surface border-outline-variant/30 hover:bg-surface-container'"
+            type="button"
+            @click="useHalfHour = !useHalfHour"
           >
-            <!-- 已排课程 -->
-            <div
-              v-if="getEventAt(slot.hour)"
-              class="absolute top-0 left-2 right-0 rounded-2xl p-4 shadow-md border-l-4 flex flex-col justify-between cursor-pointer hover:shadow-lg transition-shadow"
-              :class="eventCardClass(getEventAt(slot.hour))"
-              :style="{ height: getEventHeight(getEventAt(slot.hour)) + 'px' }"
-              @click="openDetail(getEventAt(slot.hour))"
-            >
-              <div class="flex items-center justify-between">
-                <h3 class="text-h3" :class="eventTextClass(getEventAt(slot.hour))">{{ getEventAt(slot.hour).name }}</h3>
-                <div class="flex items-center gap-2">
-                  <div
-                    v-if="getEventAt(slot.hour).status === 'live'"
-                    class="bg-white/40 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    :class="eventTextClass(getEventAt(slot.hour))"
-                  >LIVE</div>
-                  <span
-                    v-if="getEventAt(slot.hour).location"
-                    class="flex items-center gap-1"
-                  >
-                    <span class="material-symbols-outlined text-base opacity-50">location_on</span>
-                    <span class="text-label-sm opacity-70">{{ getEventAt(slot.hour).location }}</span>
-                  </span>
-                  <span class="material-symbols-outlined text-base opacity-50">more_horiz</span>
-                </div>
-              </div>
-              <div v-if="getEventAt(slot.hour).description" class="flex-grow mt-2">
-                <p class="text-body-md opacity-60 line-clamp-2">{{ getEventAt(slot.hour).description }}</p>
-              </div>
-              <div class="flex items-center justify-between opacity-80 mt-1">
-                <div class="flex items-center gap-1">
-                  <span class="material-symbols-outlined text-sm">schedule</span>
-                  <span class="text-body-md font-medium">{{ getEventAt(slot.hour).startTime }} - {{ getEventAt(slot.hour).endTime }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-lg">drag_handle</span>
-                  <div
-                    class="w-4 h-4 rounded-full border-2 border-white shadow-sm cursor-ns-resize"
-                    :class="eventDotClass(getEventAt(slot.hour))"
-                  ></div>
-                </div>
-              </div>
-            </div>
+            {{ useHalfHour ? '30m' : '1h' }}
+          </button>
+        </div>
 
-            <!-- 休息时间（该时段无课程时显示） -->
-            <div
-              v-if="slot.hour === 12 && !getEventAt(12)"
-              class="flex items-center justify-center h-full"
-            >
-              <div class="bg-surface-container-low px-4 py-1 rounded-full text-on-surface-variant/40 flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">lunch_dining</span>
-                <span class="text-label-sm">Break Time</span>
-              </div>
-            </div>
+        <p v-if="dropHint" class="text-label-sm text-primary text-center -mt-1 mb-3">{{ dropHint }}</p>
 
-            <!-- 当前时间指示线 -->
+        <div ref="timelineScrollEl" class="overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing pb-14">
+          <div class="flex pb-4" :style="{ minWidth: `${timelineMinWidth}px` }">
             <div
-              v-if="slot.hour === currentTimeSlot"
-              class="flex items-center w-full absolute"
-              :style="{ top: currentTimeOffset + 'px' }"
+              v-for="slot in timeSlots"
+              :key="slot.key"
+              class="flex-shrink-0 border-l border-surface-container-highest/50 relative min-h-[300px]"
+              :class="[slotWidthClass, slotPaddingClass]"
+              :data-slot="String(slot.key)"
+              @dragover.prevent="onSlotDragOver($event, slot.key)"
+              @drop.prevent="onDropOnSlot($event, slot.key)"
             >
-              <div class="w-full h-0.5 bg-blue-500/20 relative">
-                <div class="absolute -left-1 -top-[3px] w-2 h-2 rounded-full bg-blue-500"></div>
-                <span class="absolute -top-6 left-2 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">CURRENT</span>
+              <span class="text-label-sm text-on-surface-variant/60 block mb-4 whitespace-nowrap">{{ slot.label }}</span>
+
+              <div
+                v-if="slot.key === 720 && !getEventBySlotKey(720)"
+                class="mt-12 bg-surface-container-low px-3 py-1 rounded-full text-on-surface-variant/40 flex items-center justify-center gap-1"
+              >
+                <span class="material-symbols-outlined text-[14px]">lunch_dining</span>
+                <span class="text-[10px] font-semibold">Break</span>
               </div>
+
+              <div
+                v-if="getEventBySlotKey(slot.key)"
+                class="rounded-[16px] p-3 shadow-md border-t-4 flex flex-col justify-between cursor-pointer hover:shadow-lg transition-shadow h-40"
+                :class="eventCardClass(getEventBySlotKey(slot.key))"
+                @click="openDetail(getEventBySlotKey(slot.key))"
+              >
+                <div class="flex items-center justify-between">
+                  <h3 class="font-bold text-sm" :class="eventTextClass(getEventBySlotKey(slot.key))">
+                    {{ getEventBySlotKey(slot.key).name }}
+                  </h3>
+                </div>
+
+                <p
+                  v-if="getEventBySlotKey(slot.key).description"
+                  class="text-[10px] mt-1 line-clamp-2 leading-tight"
+                  :class="eventTextClass(getEventBySlotKey(slot.key)) + '/60'"
+                >
+                  {{ getEventBySlotKey(slot.key).description }}
+                </p>
+
+                <div class="mt-auto">
+                  <div class="flex items-center gap-1 text-[10px]" :class="eventTextClass(getEventBySlotKey(slot.key)) + '/80'">
+                    <span class="material-symbols-outlined text-[12px]">schedule</span>
+                    <span>{{ getEventBySlotKey(slot.key).startTime }} - {{ getEventBySlotKey(slot.key).endTime }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="dropTargetKey === slot.key" class="absolute inset-y-0 right-0 w-1 bg-primary/20"></div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- FAB -->
     <button
-      class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-2xl shadow-xl flex items-center justify-center active:scale-90 transition-all duration-300 z-40"
+      class="fixed bottom-24 right-8 w-14 h-14 bg-primary text-white rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center active:scale-90 transition-all duration-300 z-40"
       @click="showAddModal = true"
     >
-      <span class="material-symbols-outlined text-3xl">add</span>
+      <span class="material-symbols-outlined text-[28px]">add</span>
     </button>
 
-    <!-- 课程详情抽屉 -->
-    <CourseDetailDrawer
-      :visible="showDetail"
-      :course="selectedCourse"
-      @close="showDetail = false"
-    />
-
-    <!-- 新增课程弹窗 -->
-    <AddCourseModal
-      :visible="showAddModal"
-      @close="showAddModal = false"
-      @save="addCourse"
-    />
+    <CourseDetailDrawer :visible="showDetail" :course="selectedCourse" @close="showDetail = false" @remove="confirmRemoveScheduledCourse" />
+    <AddCourseModal :visible="showAddModal" @close="showAddModal = false" @save="addCourse" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import CourseDetailDrawer from '../components/CourseDetailDrawer.vue'
 import AddCourseModal from '../components/AddCourseModal.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const router = useRouter()
+const route = useRoute()
+const timelineScrollEl = ref(null)
+const useHalfHour = ref(false)
+const dropTargetKey = ref(null)
+const slotWidthClass = computed(() => (useHalfHour.value ? 'w-9' : 'w-[72px]'))
+const slotPaddingClass = computed(() => (useHalfHour.value ? 'px-2' : 'px-3'))
+const timelineMinWidth = computed(() => 1728)
 
-const currentDate = ref(new Date(2026, 3, 25))
+async function scrollToDefaultHour() {
+  await nextTick()
+  const root = timelineScrollEl.value
+  if (!root) return
+  const el = root.querySelector('[data-slot="480"]') // 08:00
+  if (!el) return
+  el.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'start' })
+}
+
+function parseQueryDate(value) {
+  if (typeof value !== 'string' || !value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d
+}
+
+const currentDate = ref(parseQueryDate(route.query?.date) || new Date(2026, 3, 25))
 
 const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 
@@ -199,8 +216,24 @@ function changeDate(offset) {
 }
 
 function goToCalendar() {
-  router.push('/calendar')
+  const d = currentDate.value
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  router.push({ path: '/calendar', query: { date: iso } })
 }
+
+watch(
+  () => route.query?.date,
+  (v) => {
+    const d = parseQueryDate(v)
+    if (!d) return
+    currentDate.value = d
+    scrollToDefaultHour()
+  }
+)
+
+onMounted(() => {
+  scrollToDefaultHour()
+})
 
 const courseModules = ref([
   { id: 1, name: '钢琴', category: 'Activity', color: 'blue' },
@@ -209,15 +242,153 @@ const courseModules = ref([
 ])
 
 const draggingModuleId = ref(null)
-const dropTargetHour = ref(null)
 const dropHint = ref('')
 const nextEventId = ref(100)
+const toastMessage = ref('')
+let toastTimer = null
+const confirm = ref({
+  visible: false,
+  title: '确认删除？',
+  message: '',
+  action: null
+})
+
+// Mobile long-press drag state (Pointer Events)
+const activePointerId = ref(null)
+const pendingDrag = ref(null) // { module, pointerId }
+const isTouchDragging = ref(false)
+let longPressTimer = null
+
+function showToast(message) {
+  toastMessage.value = message
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastMessage.value = ''
+  }, 1600)
+}
+
+function openConfirm({ title = '确认删除？', message = '', action }) {
+  confirm.value = { visible: true, title, message, action }
+}
+
+function closeConfirm() {
+  confirm.value = { ...confirm.value, visible: false, action: null }
+}
+
+function runConfirm() {
+  const action = confirm.value.action
+  closeConfirm()
+  if (typeof action === 'function') action()
+}
+
+function clearLongPress() {
+  if (longPressTimer) clearTimeout(longPressTimer)
+  longPressTimer = null
+  pendingDrag.value = null
+}
+
+function findSlotKeyFromPoint(clientX, clientY) {
+  const els = document.elementsFromPoint(clientX, clientY)
+  for (const el of els) {
+    if (el?.dataset?.slot != null) {
+      const n = Number(el.dataset.slot)
+      if (!Number.isNaN(n)) return n
+    }
+  }
+  return null
+}
+
+function onModulePointerDown(e, module) {
+  // Only improve touch UX; keep desktop native drag intact
+  if (e.pointerType !== 'touch') return
+  activePointerId.value = e.pointerId
+  pendingDrag.value = { module, pointerId: e.pointerId }
+
+  clearLongPress()
+  pendingDrag.value = { module, pointerId: e.pointerId }
+  longPressTimer = setTimeout(() => {
+    if (!pendingDrag.value || pendingDrag.value.pointerId !== e.pointerId) return
+    isTouchDragging.value = true
+    draggingModuleId.value = module.id
+    dropHint.value = '拖到对应时间段松手即可添加'
+    try {
+      e.currentTarget?.setPointerCapture?.(e.pointerId)
+    } catch {
+      /* ignore */
+    }
+  }, 120)
+}
+
+function onModulePointerMove(e) {
+  if (e.pointerType !== 'touch') return
+  if (!activePointerId.value || e.pointerId !== activePointerId.value) return
+
+  // Before long-press triggers, moving finger cancels to allow scrolling
+  if (!isTouchDragging.value) return
+
+  const key = findSlotKeyFromPoint(e.clientX, e.clientY)
+  dropTargetKey.value = key
+  e.preventDefault()
+}
+
+function commitTouchDrop(slotKey) {
+  if (slotKey == null) return
+  const mod = pendingDrag.value?.module
+  if (!mod) return
+
+  // reuse slot constraint & insert logic
+  if (getEventBySlotKey(slotKey)) {
+    showToast('该时间段已存在课程模块')
+    return
+  }
+
+  const { startMinutes, endMinutes, duration } = buildEventTiming(slotKey)
+  const { hour: sh, minute: sm } = minutesToClock(startMinutes)
+  const { hour: eh, minute: em } = minutesToClock(endMinutes)
+  const newEvent = {
+    id: nextEventId.value++,
+    name: mod.name,
+    startTime: formatTime(sh, sm),
+    endTime: formatTime(eh, em),
+    startHour: sh,
+    startMinute: sm,
+    startSlotKey: slotKey,
+    duration,
+    color: mod.color || 'blue',
+    status: null,
+    location: null,
+    description: null,
+    moduleId: mod.id
+  }
+  scheduledEvents.value = [...scheduledEvents.value, newEvent]
+}
+
+function endTouchDrag() {
+  clearLongPress()
+  isTouchDragging.value = false
+  activePointerId.value = null
+  draggingModuleId.value = null
+  dropTargetKey.value = null
+  dropHint.value = ''
+}
+
+function onModulePointerUp(e) {
+  if (e.pointerType !== 'touch') return
+  if (!activePointerId.value || e.pointerId !== activePointerId.value) return
+
+  if (isTouchDragging.value) {
+    commitTouchDrop(dropTargetKey.value)
+  }
+  endTouchDrag()
+}
+
+function onModulePointerCancel(e) {
+  if (e.pointerType !== 'touch') return
+  if (!activePointerId.value || e.pointerId !== activePointerId.value) return
+  endTouchDrag()
+}
 
 const DRAG_MIME = 'application/x-demo-course-module'
-
-function formatTime(hour, minute = 0) {
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-}
 
 function onModuleDragStart(e, course) {
   draggingModuleId.value = course.id
@@ -239,17 +410,22 @@ function onModuleDragStart(e, course) {
 
 function onModuleDragEnd() {
   draggingModuleId.value = null
-  dropTargetHour.value = null
+  dropTargetKey.value = null
   dropHint.value = ''
 }
 
-function onSlotDragOver(e, hour) {
+function onSlotDragOver(e, slotKey) {
   if (!draggingModuleId.value) return
   e.dataTransfer.dropEffect = 'copy'
-  dropTargetHour.value = hour
+  dropTargetKey.value = slotKey
 }
 
-function onDropOnSlot(e, hour) {
+function onDropOnSlot(e, slotKey) {
+  if (getEventBySlotKey(slotKey)) {
+    showToast('该时间段已存在课程模块')
+    onModuleDragEnd()
+    return
+  }
   const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain')
   if (!raw) {
     onModuleDragEnd()
@@ -267,14 +443,17 @@ function onDropOnSlot(e, hour) {
     return
   }
 
-  const duration = 1
-  const endH = hour + duration
+  const { startMinutes, endMinutes, duration } = buildEventTiming(slotKey)
+  const { hour: sh, minute: sm } = minutesToClock(startMinutes)
+  const { hour: eh, minute: em } = minutesToClock(endMinutes)
   const newEvent = {
     id: nextEventId.value++,
     name: mod.name,
-    startTime: formatTime(hour, 0),
-    endTime: formatTime(endH, 0),
-    startHour: hour,
+    startTime: formatTime(sh, sm),
+    endTime: formatTime(eh, em),
+    startHour: sh,
+    startMinute: sm,
+    startSlotKey: slotKey,
     duration,
     color: mod.color || 'blue',
     status: null,
@@ -283,9 +462,24 @@ function onDropOnSlot(e, hour) {
     moduleId: mod.id
   }
 
-  const rest = scheduledEvents.value.filter((ev) => ev.startHour !== hour)
-  scheduledEvents.value = [...rest, newEvent]
+  scheduledEvents.value = [...scheduledEvents.value, newEvent]
   onModuleDragEnd()
+}
+
+function minutesToClock(totalMinutes) {
+  const m = ((totalMinutes % 1440) + 1440) % 1440
+  return { hour: Math.floor(m / 60), minute: m % 60 }
+}
+
+function buildEventTiming(slotKey) {
+  const startMinutes = slotKey
+  const duration = useHalfHour.value ? 0.5 : 1 // hours
+  const endMinutes = startMinutes + duration * 60
+  return { startMinutes, endMinutes, duration }
+}
+
+function formatTime(hour, minute = 0) {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
 const scheduledEvents = ref([
@@ -295,6 +489,8 @@ const scheduledEvents = ref([
     startTime: '10:00',
     endTime: '11:00',
     startHour: 10,
+    startMinute: 0,
+    startSlotKey: 600,
     duration: 1,
     color: 'blue',
     status: 'live',
@@ -307,6 +503,8 @@ const scheduledEvents = ref([
     startTime: '14:00',
     endTime: '15:30',
     startHour: 14,
+    startMinute: 0,
+    startSlotKey: 840,
     duration: 1.5,
     color: 'pink',
     status: null,
@@ -317,26 +515,54 @@ const scheduledEvents = ref([
 
 const timeSlots = computed(() => {
   const slots = []
-  for (let h = 10; h <= 16; h++) {
-    slots.push({ hour: h, label: `${h}:00` })
+  if (useHalfHour.value) {
+    for (let m = 0; m < 1440; m += 30) {
+      const { hour, minute } = minutesToClock(m)
+      slots.push({ key: m, label: formatTime(hour, minute) })
+    }
+    return slots
+  }
+  for (let h = 0; h < 24; h++) {
+    const m = h * 60
+    slots.push({ key: m, label: formatTime(h, 0) })
   }
   return slots
 })
 
-function slotHasEvent(hour) {
-  return scheduledEvents.value.some(e => e.startHour === hour)
+function getEventBySlotKey(slotKey) {
+  return (
+    scheduledEvents.value.find(
+      (e) => (e.startSlotKey ?? (e.startHour * 60 + (e.startMinute || 0))) === slotKey
+    ) || null
+  )
 }
 
-function getEventAt(hour) {
-  return scheduledEvents.value.find(e => e.startHour === hour) || null
-}
-
-function getEventHeight(event) {
-  return Math.max(84, event.duration * 100)
-}
-
-const currentTimeSlot = ref(16)
-const currentTimeOffset = ref(30)
+watch(
+  () => useHalfHour.value,
+  () => {
+    // 切换刻度时，把 startSlotKey 重新对齐到当前刻度的“槽位起点”
+    scheduledEvents.value = scheduledEvents.value.map((ev) => {
+      const startMins = ev.startHour * 60 + (ev.startMinute || 0)
+      const slotMins = useHalfHour.value ? startMins - (startMins % 30) : startMins - (startMins % 60)
+      const durHours = useHalfHour.value
+        ? (ev.duration && ev.duration < 1 ? ev.duration : 0.5)
+        : (ev.duration && ev.duration < 1 ? 1 : (ev.duration || 1))
+      const endMins = slotMins + durHours * 60
+      const s = minutesToClock(slotMins)
+      const e = minutesToClock(endMins)
+      return {
+        ...ev,
+        startSlotKey: slotMins,
+        startHour: s.hour,
+        startMinute: s.minute,
+        startTime: formatTime(s.hour, s.minute),
+        endTime: formatTime(e.hour, e.minute),
+        duration: durHours
+      }
+    })
+    scrollToDefaultHour()
+  }
+)
 
 function courseCardClass(color) {
   const map = {
@@ -356,6 +582,17 @@ function courseTextClass(color) {
     green: 'text-on-secondary-container',
     yellow: 'text-amber-900',
     purple: 'text-purple-900'
+  }
+  return map[color] || map.blue
+}
+
+function moduleGridClass(color) {
+  const map = {
+    blue: 'bg-primary-container/40 border-primary-container/60 hover:bg-primary-container/60',
+    pink: 'bg-tertiary-container/40 border-tertiary-container/60 hover:bg-tertiary-container/60',
+    green: 'bg-secondary-container/40 border-secondary-container/60 hover:bg-secondary-container/60',
+    yellow: 'bg-yellow-pastel/50 border-amber-400/40 hover:bg-yellow-pastel/80',
+    purple: 'bg-purple-pastel/50 border-purple-400/40 hover:bg-purple-pastel/80'
   }
   return map[color] || map.blue
 }
@@ -411,5 +648,38 @@ function addCourse(course) {
     color: course.color
   })
   showAddModal.value = false
+}
+
+function deleteModule(moduleId) {
+  courseModules.value = courseModules.value.filter((m) => m.id !== moduleId)
+  scheduledEvents.value = scheduledEvents.value.filter((ev) => ev.moduleId !== moduleId)
+  if (selectedCourse.value?.moduleId === moduleId) {
+    showDetail.value = false
+    selectedCourse.value = null
+  }
+}
+
+function removeScheduledCourse(eventId) {
+  scheduledEvents.value = scheduledEvents.value.filter((ev) => ev.id !== eventId)
+  if (selectedCourse.value?.id === eventId) {
+    showDetail.value = false
+    selectedCourse.value = null
+  }
+}
+
+function confirmDeleteModule(moduleId) {
+  openConfirm({
+    title: '删除课程模块？',
+    message: '删除后将同步移除该模块在时间表中的课程。',
+    action: () => deleteModule(moduleId)
+  })
+}
+
+function confirmRemoveScheduledCourse(eventId) {
+  openConfirm({
+    title: '移出日程？',
+    message: '仅删除该时间段中的课程安排。',
+    action: () => removeScheduledCourse(eventId)
+  })
 }
 </script>
