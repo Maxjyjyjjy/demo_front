@@ -174,6 +174,16 @@ import { useRouter, useRoute } from 'vue-router'
 import CourseDetailDrawer from '../components/CourseDetailDrawer.vue'
 import AddCourseModal from '../components/AddCourseModal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import {
+  createCourseModule,
+  deleteCourseModule,
+  fetchCourseModules
+} from '../services/courseModuleService'
+import {
+  createScheduleEvent,
+  deleteScheduleEvent,
+  fetchScheduleEvents
+} from '../services/scheduleService'
 
 const router = useRouter()
 const route = useRoute()
@@ -201,6 +211,15 @@ function parseQueryDate(value) {
 }
 
 const currentDate = ref(parseQueryDate(route.query?.date) || new Date())
+
+const dayIso = computed(() => {
+  const d = currentDate.value
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
+
+function hasApi() {
+  return Boolean(import.meta.env.VITE_API_BASE_URL)
+}
 
 const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 
@@ -231,15 +250,15 @@ watch(
   }
 )
 
-onMounted(() => {
-  scrollToDefaultHour()
-})
-
-const courseModules = ref([
-  { id: 1, name: '钢琴', category: 'Activity', color: 'blue' },
-  { id: 2, name: '唱歌', category: 'Art', color: 'pink' },
-  { id: 3, name: '书法', category: 'Skill', color: 'green' }
-])
+const courseModules = ref(
+  hasApi()
+    ? []
+    : [
+        { id: 1, name: '钢琴', category: 'Activity', color: 'blue' },
+        { id: 2, name: '唱歌', category: 'Art', color: 'pink' },
+        { id: 3, name: '书法', category: 'Skill', color: 'green' }
+      ]
+)
 
 const draggingModuleId = ref(null)
 const dropHint = ref('')
@@ -335,32 +354,7 @@ function commitTouchDrop(slotKey) {
   if (slotKey == null) return
   const mod = pendingDrag.value?.module
   if (!mod) return
-
-  // reuse slot constraint & insert logic
-  if (getEventBySlotKey(slotKey)) {
-    showToast('该时间段已存在课程模块')
-    return
-  }
-
-  const { startMinutes, endMinutes, duration } = buildEventTiming(slotKey)
-  const { hour: sh, minute: sm } = minutesToClock(startMinutes)
-  const { hour: eh, minute: em } = minutesToClock(endMinutes)
-  const newEvent = {
-    id: nextEventId.value++,
-    name: mod.name,
-    startTime: formatTime(sh, sm),
-    endTime: formatTime(eh, em),
-    startHour: sh,
-    startMinute: sm,
-    startSlotKey: slotKey,
-    duration,
-    color: mod.color || 'blue',
-    status: null,
-    location: null,
-    description: null,
-    moduleId: mod.id
-  }
-  scheduledEvents.value = [...scheduledEvents.value, newEvent]
+  void addEventToSlot(mod, slotKey)
 }
 
 function endTouchDrag() {
@@ -421,11 +415,6 @@ function onSlotDragOver(e, slotKey) {
 }
 
 function onDropOnSlot(e, slotKey) {
-  if (getEventBySlotKey(slotKey)) {
-    showToast('该时间段已存在课程模块')
-    onModuleDragEnd()
-    return
-  }
   const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain')
   if (!raw) {
     onModuleDragEnd()
@@ -442,28 +431,7 @@ function onDropOnSlot(e, slotKey) {
     onModuleDragEnd()
     return
   }
-
-  const { startMinutes, endMinutes, duration } = buildEventTiming(slotKey)
-  const { hour: sh, minute: sm } = minutesToClock(startMinutes)
-  const { hour: eh, minute: em } = minutesToClock(endMinutes)
-  const newEvent = {
-    id: nextEventId.value++,
-    name: mod.name,
-    startTime: formatTime(sh, sm),
-    endTime: formatTime(eh, em),
-    startHour: sh,
-    startMinute: sm,
-    startSlotKey: slotKey,
-    duration,
-    color: mod.color || 'blue',
-    status: null,
-    location: null,
-    description: null,
-    moduleId: mod.id
-  }
-
-  scheduledEvents.value = [...scheduledEvents.value, newEvent]
-  onModuleDragEnd()
+  void addEventToSlot(mod, slotKey).finally(() => onModuleDragEnd())
 }
 
 function minutesToClock(totalMinutes) {
@@ -482,36 +450,71 @@ function formatTime(hour, minute = 0) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
-const scheduledEvents = ref([
-  {
-    id: 1,
-    name: '钢琴',
-    startTime: '10:00',
-    endTime: '11:00',
-    startHour: 10,
-    startMinute: 0,
-    startSlotKey: 600,
-    duration: 1,
-    color: 'blue',
-    status: 'live',
-    location: null,
-    description: null
-  },
-  {
-    id: 2,
-    name: '唱歌',
-    startTime: '14:00',
-    endTime: '15:30',
-    startHour: 14,
-    startMinute: 0,
-    startSlotKey: 840,
-    duration: 1.5,
-    color: 'pink',
-    status: null,
-    location: 'Studio B',
-    description: 'Vocal training and warm-ups session.'
+const scheduledEvents = ref(
+  hasApi()
+    ? []
+    : [
+        {
+          id: 1,
+          name: '钢琴',
+          startTime: '10:00',
+          endTime: '11:00',
+          startHour: 10,
+          startMinute: 0,
+          startSlotKey: 600,
+          duration: 1,
+          color: 'blue',
+          status: 'live',
+          location: null,
+          description: null
+        },
+        {
+          id: 2,
+          name: '唱歌',
+          startTime: '14:00',
+          endTime: '15:30',
+          startHour: 14,
+          startMinute: 0,
+          startSlotKey: 840,
+          duration: 1.5,
+          color: 'pink',
+          status: null,
+          location: 'Studio B',
+          description: 'Vocal training and warm-ups session.'
+        }
+      ]
+)
+
+async function loadCourseModulesOnly() {
+  if (!hasApi()) return
+  try {
+    courseModules.value = await fetchCourseModules()
+  } catch (e) {
+    showToast(e?.message || '加载失败')
   }
-])
+}
+
+watch(
+  dayIso,
+  (iso) => {
+    if (!hasApi()) return
+    void fetchScheduleEvents(iso)
+      .then((evs) => {
+        scheduledEvents.value = evs
+      })
+      .catch((e) => {
+        showToast(e?.message || '加载失败')
+      })
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  if (hasApi()) {
+    void loadCourseModulesOnly()
+  }
+  scrollToDefaultHour()
+})
 
 const timeSlots = computed(() => {
   const slots = []
@@ -535,6 +538,51 @@ function getEventBySlotKey(slotKey) {
       (e) => (e.startSlotKey ?? (e.startHour * 60 + (e.startMinute || 0))) === slotKey
     ) || null
   )
+}
+
+async function addEventToSlot(mod, slotKey) {
+  if (getEventBySlotKey(slotKey)) {
+    showToast('该时间段已存在课程模块')
+    return
+  }
+  if (hasApi()) {
+    try {
+      const created = await createScheduleEvent({
+        date: dayIso.value,
+        name: mod.name,
+        startSlotKey: slotKey,
+        duration: useHalfHour.value ? 0.5 : 1,
+        color: mod.color || 'blue',
+        status: null,
+        location: null,
+        description: null,
+        moduleId: mod.id
+      })
+      scheduledEvents.value = [...scheduledEvents.value, created]
+    } catch (e) {
+      showToast(e?.message || '添加失败')
+    }
+    return
+  }
+  const { startMinutes, endMinutes, duration } = buildEventTiming(slotKey)
+  const { hour: sh, minute: sm } = minutesToClock(startMinutes)
+  const { hour: eh, minute: em } = minutesToClock(endMinutes)
+  const newEvent = {
+    id: nextEventId.value++,
+    name: mod.name,
+    startTime: formatTime(sh, sm),
+    endTime: formatTime(eh, em),
+    startHour: sh,
+    startMinute: sm,
+    startSlotKey: slotKey,
+    duration,
+    color: mod.color || 'blue',
+    status: null,
+    location: null,
+    description: null,
+    moduleId: mod.id
+  }
+  scheduledEvents.value = [...scheduledEvents.value, newEvent]
 }
 
 watch(
@@ -640,17 +688,39 @@ function openDetail(event) {
 
 const showAddModal = ref(false)
 
-function addCourse(course) {
-  courseModules.value.push({
-    id: Date.now(),
-    name: course.name,
-    category: 'Custom',
-    color: course.color
-  })
+async function addCourse(course) {
+  if (hasApi()) {
+    try {
+      const created = await createCourseModule({
+        name: course.name,
+        color: course.color,
+        category: 'Custom'
+      })
+      courseModules.value = [...courseModules.value, created]
+    } catch (e) {
+      showToast(e?.message || '添加失败')
+      return
+    }
+  } else {
+    courseModules.value.push({
+      id: Date.now(),
+      name: course.name,
+      category: 'Custom',
+      color: course.color
+    })
+  }
   showAddModal.value = false
 }
 
-function deleteModule(moduleId) {
+async function deleteModule(moduleId) {
+  if (hasApi()) {
+    try {
+      await deleteCourseModule(moduleId)
+    } catch (e) {
+      showToast(e?.message || '删除失败')
+      return
+    }
+  }
   courseModules.value = courseModules.value.filter((m) => m.id !== moduleId)
   scheduledEvents.value = scheduledEvents.value.filter((ev) => ev.moduleId !== moduleId)
   if (selectedCourse.value?.moduleId === moduleId) {
@@ -659,7 +729,15 @@ function deleteModule(moduleId) {
   }
 }
 
-function removeScheduledCourse(eventId) {
+async function removeScheduledCourse(eventId) {
+  if (hasApi()) {
+    try {
+      await deleteScheduleEvent(eventId)
+    } catch (e) {
+      showToast(e?.message || '删除失败')
+      return
+    }
+  }
   scheduledEvents.value = scheduledEvents.value.filter((ev) => ev.id !== eventId)
   if (selectedCourse.value?.id === eventId) {
     showDetail.value = false

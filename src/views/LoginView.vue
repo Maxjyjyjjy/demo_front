@@ -45,8 +45,11 @@
             {{ submitting ? '登录中…' : '登录' }}
           </button>
 
-          <p class="text-label-sm text-on-surface-variant text-center">
-            这是前端演示：任意非空账号密码即可登录
+          <p v-if="!useBackend" class="text-label-sm text-on-surface-variant text-center">
+            未配置接口地址时为演示：任意非空账号密码即可登录
+          </p>
+          <p v-else class="text-label-sm text-on-surface-variant text-center">
+            请使用后台账号密码登录（如 demo / demo123）
           </p>
         </form>
       </div>
@@ -61,6 +64,7 @@ import { loginWithPassword } from '../services/authService'
 
 const route = useRoute()
 const router = useRouter()
+const useBackend = Boolean(import.meta.env.VITE_API_BASE_URL)
 
 const username = ref('')
 const password = ref('')

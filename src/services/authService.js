@@ -16,7 +16,11 @@ export async function loginWithPassword(username, password) {
     { username, password },
     { auth: false }
   )
-  const t = res?.token ?? res?.accessToken ?? res?.access_token ?? res?.data?.token
+  const t =
+    res?.token ??
+    res?.accessToken ??
+    res?.access_token ??
+    res?.data?.token
   if (typeof t !== 'string' || !t) {
     throw new Error('登录成功但未返回有效 token')
   }

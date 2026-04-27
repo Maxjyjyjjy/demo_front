@@ -86,8 +86,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useRoute } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { fetchHasEventsOnDate } from '../services/scheduleService'
 
 const router = useRouter()
 const route = useRoute()
@@ -152,7 +152,7 @@ function getDayTextClass(day) {
   return 'text-on-surface'
 }
 
-const eventDots = {
+const STATIC_EVENT_DOTS = {
   1: 'bg-primary-container',
   3: 'bg-tertiary-container',
   6: 'bg-secondary-fixed',
@@ -167,8 +167,41 @@ const eventDots = {
   30: 'bg-primary-container'
 }
 
+const API_DOT_BY_DAY = ref({})
+const hasApi = () => Boolean(import.meta.env.VITE_API_BASE_URL)
+
+async function refreshApiMonthDots() {
+  if (!hasApi()) {
+    API_DOT_BY_DAY.value = {}
+    return
+  }
+  const y = currentYear.value
+  const m = currentMonth.value
+  const n = new Date(y, m + 1, 0).getDate()
+  const palette = ['bg-primary-container', 'bg-tertiary-container', 'bg-secondary-fixed', 'bg-primary']
+  const next = {}
+  try {
+    const flags = await Promise.all(
+      Array.from({ length: n }, (_, i) => {
+        const day = i + 1
+        const iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        return fetchHasEventsOnDate(iso).then((h) => ({ day, h: Boolean(h) }))
+      })
+    )
+    for (const { day, h } of flags) {
+      if (h) next[day] = palette[day % palette.length]
+    }
+  } catch {
+    /* 忽略，保留无点 */
+  }
+  API_DOT_BY_DAY.value = next
+}
+
 function getDotColor(day) {
-  return eventDots[day] || null
+  if (hasApi()) {
+    return API_DOT_BY_DAY.value[day] || null
+  }
+  return STATIC_EVENT_DOTS[day] || null
 }
 
 function selectDate(day) {
@@ -200,4 +233,11 @@ function applyFromQuery() {
 
 applyFromQuery()
 watch(() => route.query?.date, applyFromQuery)
+watch(
+  [currentYear, currentMonth],
+  () => {
+    void refreshApiMonthDots()
+  },
+  { immediate: true }
+)
 </script>

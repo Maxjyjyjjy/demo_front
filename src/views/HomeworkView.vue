@@ -11,6 +11,14 @@
       @cancel="closeConfirm"
     />
 
+    <p
+      v-if="apiHint"
+      class="text-label-sm text-error text-center -mt-2"
+      role="status"
+    >
+      {{ apiHint }}
+    </p>
+
     <!-- Welcome -->
     <section class="space-y-1">
       <h2 class="text-h2 text-on-background">Assignments</h2>
@@ -104,7 +112,7 @@
 
               <div class="flex flex-col gap-2">
                 <div
-                  v-for="item in (homeworkSchedule[slot.key] || [])"
+                  v-for="item in getSlotList(slot.key)"
                   :key="item._scheduleId"
                   class="rounded-[14px] px-2 py-2 border shadow-sm relative"
                   :class="scheduledItemClass(item)"
@@ -182,10 +190,24 @@ import { useRoute, useRouter } from 'vue-router'
 import AddHomeworkModal from '../components/AddHomeworkModal.vue'
 import AddQuickTaskModal from '../components/AddQuickTaskModal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import { fetchHomeworkFromEmail } from '../services/homeworkService'
+import {
+  createHomework,
+  createHomeworkScheduleEntry,
+  deleteHomeworkById,
+  deleteHomeworkScheduleEntry,
+  fetchAllHomework
+} from '../services/homeworkService'
+import {
+  createQuickTask as createQuickTaskApi,
+  deleteQuickTask as deleteQuickTaskApi,
+  fetchQuickTasks
+} from '../services/quickTaskService'
 
 const route = useRoute()
 const router = useRouter()
+const apiHint = ref('')
+
+const hasApi = () => Boolean(import.meta.env.VITE_API_BASE_URL)
 
 function parseQueryDate(value) {
   if (typeof value !== 'string' || !value) return null
@@ -226,6 +248,19 @@ const showAddHomework = ref(false)
 const showAddQuickTask = ref(false)
 const timelineScrollEl = ref(null)
 
+const dayIso = computed(() => {
+  const d = currentDate.value
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
+
+/** 各自然日的 slotKey -> 已安排作业；无 GET 时仅内存态 */
+const scheduleByDate = ref({})
+
+function getSlotList(slotKey) {
+  const m = scheduleByDate.value[dayIso.value] || {}
+  return m[slotKey] || []
+}
+
 async function scrollToDefaultHour() {
   await nextTick()
   const root = timelineScrollEl.value
@@ -245,15 +280,11 @@ watch(
   }
 )
 
-const homeworkSchedule = ref({})
 let nextScheduleId = 1
 
 const DRAG_MIME = 'application/x-demo-homework'
 
-const quickTasks = ref([
-  { id: 'qt-1', title: 'Email professor about quiz', category: 'Communication' },
-  { id: 'qt-2', title: 'Buy new calculator batteries', category: 'General' }
-])
+const quickTasks = ref([])
 
 const confirm = ref({
   visible: false,
@@ -263,14 +294,20 @@ const confirm = ref({
 })
 
 onMounted(async () => {
-  homework.value = await fetchHomeworkFromEmail()
+  try {
+    const [h, q] = await Promise.all([fetchAllHomework(), fetchQuickTasks()])
+    homework.value = h
+    quickTasks.value = q
+  } catch (e) {
+    apiHint.value = e?.message || '加载失败'
+  }
   scrollToDefaultHour()
 })
 
 watch(
   () => useHalfHour.value,
   () => {
-    homeworkSchedule.value = {}
+    scheduleByDate.value = {}
     scrollToDefaultHour()
   }
 )
@@ -400,7 +437,7 @@ function onSlotDragOver(e, slotKey) {
   dropTargetKey.value = slotKey
 }
 
-function onDropOnSlot(e, slotKey) {
+async function onDropOnSlot(e, slotKey) {
   const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain')
   if (!raw) {
     onHomeworkDragEnd()
@@ -417,47 +454,126 @@ function onDropOnSlot(e, slotKey) {
     onHomeworkDragEnd()
     return
   }
-  const entry = { ...hw, _scheduleId: `s-${nextScheduleId++}` }
-  const existing = homeworkSchedule.value[slotKey] || []
-  homeworkSchedule.value = { ...homeworkSchedule.value, [slotKey]: [...existing, entry] }
+  let _scheduleId = `s-${nextScheduleId++}`
+  if (hasApi()) {
+    try {
+      const row = await createHomeworkScheduleEntry({
+        homeworkId: String(hw.id),
+        date: dayIso.value,
+        startSlotKey: slotKey
+      })
+      const sid = row?.id ?? row?.scheduleId
+      if (sid != null) _scheduleId = sid
+    } catch (err) {
+      apiHint.value = err?.message || '安排失败'
+      setTimeout(() => {
+        apiHint.value = ''
+      }, 2800)
+      onHomeworkDragEnd()
+      return
+    }
+  }
+  const entry = { ...hw, _scheduleId }
+  const iso = dayIso.value
+  const day = { ...(scheduleByDate.value[iso] || {}) }
+  const existing = day[slotKey] || []
+  day[slotKey] = [...existing, entry]
+  scheduleByDate.value = { ...scheduleByDate.value, [iso]: day }
   onHomeworkDragEnd()
 }
 
-function addCustomHomework(payload) {
-  const now = new Date().toISOString()
-  const item = {
-    id: `custom-${Date.now()}`,
-    title: payload.title,
-    course: null,
-    receivedAt: now,
-    dueAt: payload.dueAt,
-    color: payload.color,
-    icon: 'assignment'
+async function addCustomHomework(payload) {
+  try {
+    const item = await createHomework({
+      title: payload.title,
+      course: null,
+      dueAt: payload.dueAt,
+      color: payload.color,
+      icon: 'assignment'
+    })
+    homework.value = [item, ...homework.value]
+  } catch (e) {
+    apiHint.value = e?.message || '创建失败'
+    setTimeout(() => {
+      apiHint.value = ''
+    }, 2800)
+    return
   }
-  homework.value = [item, ...homework.value]
   showAddHomework.value = false
 }
 
-function deleteHomework(id) {
-  homework.value = homework.value.filter((x) => x.id !== id)
-  const next = {}
-  for (const [k, list] of Object.entries(homeworkSchedule.value)) {
-    next[k] = (list || []).filter((x) => x.id !== id)
+async function deleteHomework(id) {
+  if (hasApi()) {
+    try {
+      await deleteHomeworkById(id)
+    } catch (e) {
+      apiHint.value = e?.message || '删除失败'
+      setTimeout(() => {
+        apiHint.value = ''
+      }, 2800)
+      return
+    }
   }
-  homeworkSchedule.value = next
+  homework.value = homework.value.filter((x) => x.id !== id)
+  const next = { ...scheduleByDate.value }
+  for (const dKey of Object.keys(next)) {
+    const day = { ...next[dKey] }
+    for (const sk of Object.keys(day)) {
+      day[sk] = (day[sk] || []).filter((x) => x.id !== id)
+    }
+    next[dKey] = day
+  }
+  scheduleByDate.value = next
 }
 
-function removeScheduled(slotKey, scheduleId) {
-  const list = homeworkSchedule.value[slotKey] || []
-  homeworkSchedule.value = { ...homeworkSchedule.value, [slotKey]: list.filter((x) => x._scheduleId !== scheduleId) }
+async function removeScheduled(slotKey, scheduleId) {
+  if (hasApi()) {
+    try {
+      await deleteHomeworkScheduleEntry(scheduleId)
+    } catch (e) {
+      apiHint.value = e?.message || '删除失败'
+      setTimeout(() => {
+        apiHint.value = ''
+      }, 2800)
+      return
+    }
+  }
+  const iso = dayIso.value
+  const day = { ...(scheduleByDate.value[iso] || {}) }
+  const list = day[slotKey] || []
+  day[slotKey] = list.filter((x) => x._scheduleId !== scheduleId)
+  scheduleByDate.value = { ...scheduleByDate.value, [iso]: day }
 }
 
-function deleteQuickTask(id) {
+async function deleteQuickTask(id) {
+  if (hasApi()) {
+    try {
+      await deleteQuickTaskApi(id)
+    } catch (e) {
+      apiHint.value = e?.message || '删除失败'
+      setTimeout(() => {
+        apiHint.value = ''
+      }, 2800)
+      return
+    }
+  }
   quickTasks.value = quickTasks.value.filter((x) => x.id !== id)
 }
 
-function addQuickTask(payload) {
-  quickTasks.value = [{ id: `qt-${Date.now()}`, title: payload.title, category: payload.category }, ...quickTasks.value]
+async function addQuickTask(payload) {
+  try {
+    const row = await createQuickTaskApi({
+      title: payload.title,
+      category: payload.category
+    })
+    quickTasks.value = [row, ...quickTasks.value]
+  } catch (e) {
+    apiHint.value = e?.message || '添加失败'
+    setTimeout(() => {
+      apiHint.value = ''
+    }, 2800)
+    return
+  }
   showAddQuickTask.value = false
 }
 

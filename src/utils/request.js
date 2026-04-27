@@ -34,7 +34,10 @@ instance.interceptors.request.use((config) => {
  * 带 token 的请求 401：清 token 并去登录
  */
 instance.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    const out = { ...res, data: unwrapApiBody(res.data) }
+    return out
+  },
   (error) => {
     const { response, config } = error
     if (response?.status === 401 && config?._useAuth !== false) {
@@ -48,21 +51,45 @@ instance.interceptors.response.use(
   }
 )
 
+/**
+ * 后端统一体：{ code, msg, data }；成功时只返回内层 data（含空字符串 ""）
+ */
+function unwrapApiBody(body) {
+  if (!body || typeof body !== 'object' || !('code' in body)) {
+    return body
+  }
+  const { code, msg, data } = body
+  if (code === 200 || code === 201) {
+    return data
+  }
+  const err = new Error(typeof msg === 'string' && msg ? msg : '请求失败')
+  err.code = code
+  err.apiMsg = msg
+  err.apiData = data
+  throw err
+}
+
 function toAppError(error) {
   if (!axios.isAxiosError(error)) {
     return error
   }
   const res = error.response
   const data = res?.data
-  const message =
-    (typeof data === 'object' && data && data.message) ||
+  let message =
+    (typeof data === 'object' && data && (data.msg || data.message)) ||
     (typeof data === 'string' && data) ||
     res?.statusText ||
     error.message ||
     '请求失败'
+  if (typeof message !== 'string') {
+    message = '请求失败'
+  }
   const err = new Error(message)
   err.status = res?.status
   err.data = data
+  if (typeof data === 'object' && data && 'code' in data) {
+    err.code = data.code
+  }
   return err
 }
 
