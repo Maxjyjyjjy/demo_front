@@ -48,9 +48,7 @@
           <p v-if="!useBackend" class="text-label-sm text-on-surface-variant text-center">
             未配置接口地址时为演示：任意非空账号密码即可登录
           </p>
-          <p v-else class="text-label-sm text-on-surface-variant text-center">
-            请使用后台账号密码登录（如 demo / demo123）
-          </p>
+          
 
           <p v-if="registeredHint" class="text-label-sm text-primary text-center">
             {{ registeredHint }}
