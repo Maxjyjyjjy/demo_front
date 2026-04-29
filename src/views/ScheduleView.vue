@@ -161,13 +161,8 @@
 
     <!-- FAB -->
     <button
-      class="fixed w-14 h-14 bg-primary text-white rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center active:scale-90 transition-all duration-300 z-40"
-      :style="fabStyle"
-      @pointerdown="onFabPointerDown"
-      @pointermove="onFabPointerMove"
-      @pointerup="onFabPointerUp"
-      @pointercancel="onFabPointerCancel"
-      @click="onFabClick"
+      class="fixed bottom-24 right-8 w-14 h-14 bg-primary text-white rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center active:scale-90 transition-all duration-300 z-40"
+      @click="showAddModal = true"
     >
       <span class="material-symbols-outlined text-[28px]">add</span>
     </button>
@@ -290,25 +285,10 @@ let edgeHoldTimer = null
 let edgeScrollTimer = null
 let edgeDirection = 0 // -1: 左, 1: 右, 0: 停止
 
-const EDGE_ZONE_PX = 56
-const EDGE_HOLD_MS = 2000
+const EDGE_ZONE_PX = 96
+const EDGE_HOLD_MS = 1200
 const EDGE_SCROLL_STEP_PX = 24
 const EDGE_SCROLL_INTERVAL_MS = 48
-
-const fabX = ref(null)
-const fabY = ref(null)
-const fabPointerId = ref(null)
-const fabStart = ref({ x: 0, y: 0, left: 0, top: 0, moved: false })
-const suppressFabClick = ref(false)
-const fabStyle = computed(() => {
-  if (fabX.value == null || fabY.value == null) {
-    return { right: '2rem', bottom: '6rem' }
-  }
-  return {
-    left: `${fabX.value}px`,
-    top: `${fabY.value}px`
-  }
-})
 
 function showToast(message) {
   toastMessage.value = message
@@ -380,71 +360,6 @@ function updateEdgeAutoScrollByX(clientX) {
   stopEdgeAutoScroll()
 }
 
-function initFabPositionIfNeeded() {
-  if (fabX.value != null && fabY.value != null) return
-  const width = window.innerWidth
-  const height = window.innerHeight
-  fabX.value = Math.max(16, width - 32 - 56)
-  fabY.value = Math.max(16, height - 96 - 56)
-}
-
-function clampFab(value, min, max) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function onFabPointerDown(e) {
-  initFabPositionIfNeeded()
-  fabPointerId.value = e.pointerId
-  fabStart.value = {
-    x: e.clientX,
-    y: e.clientY,
-    left: fabX.value ?? 0,
-    top: fabY.value ?? 0,
-    moved: false
-  }
-  try {
-    e.currentTarget?.setPointerCapture?.(e.pointerId)
-  } catch {
-    /* ignore */
-  }
-}
-
-function onFabPointerMove(e) {
-  if (fabPointerId.value == null || fabPointerId.value !== e.pointerId) return
-  const dx = e.clientX - fabStart.value.x
-  const dy = e.clientY - fabStart.value.y
-  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-    fabStart.value.moved = true
-  }
-  const maxLeft = Math.max(16, window.innerWidth - 16 - 56)
-  const maxTop = Math.max(16, window.innerHeight - 16 - 56)
-  fabX.value = clampFab(fabStart.value.left + dx, 16, maxLeft)
-  fabY.value = clampFab(fabStart.value.top + dy, 16, maxTop)
-}
-
-function endFabDrag(pointerId) {
-  if (fabPointerId.value == null || fabPointerId.value !== pointerId) return
-  suppressFabClick.value = fabStart.value.moved
-  if (suppressFabClick.value) {
-    setTimeout(() => {
-      suppressFabClick.value = false
-    }, 120)
-  }
-  fabPointerId.value = null
-}
-
-function onFabPointerUp(e) {
-  endFabDrag(e.pointerId)
-}
-
-function onFabPointerCancel(e) {
-  endFabDrag(e.pointerId)
-}
-
-function onFabClick() {
-  if (suppressFabClick.value) return
-  showAddModal.value = true
-}
 
 function findSlotKeyFromPoint(clientX, clientY) {
   const els = document.elementsFromPoint(clientX, clientY)

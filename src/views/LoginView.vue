@@ -33,7 +33,7 @@
               type="password"
               autocomplete="current-password"
               class="w-full h-14 px-5 bg-surface-container-low border-none rounded-2xl text-body-lg focus:ring-2 focus:ring-primary/20 placeholder:text-outline-variant transition-all outline-none"
-              placeholder="至少 1 个字符"
+              placeholder="至少 4 位数字/字符"
             />
           </div>
 
@@ -48,7 +48,9 @@
           <p v-if="!useBackend" class="text-label-sm text-on-surface-variant text-center">
             未配置接口地址时为演示：任意非空账号密码即可登录
           </p>
-          
+          <p class="text-label-sm text-on-surface-variant text-center">
+            提醒：密码至少 4 位
+          </p>
 
           <p v-if="registeredHint" class="text-label-sm text-primary text-center">
             {{ registeredHint }}
@@ -87,6 +89,10 @@ async function handleSubmit() {
   error.value = ''
   if (!username.value.trim() || !password.value) {
     error.value = '请输入用户名和密码'
+    return
+  }
+  if (password.value.length < 4) {
+    error.value = '密码至少 4 位'
     return
   }
   submitting.value = true

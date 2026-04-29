@@ -173,7 +173,7 @@
 
     <!-- FAB -->
     <button
-      class="fixed right-6 bottom-32 w-14 h-14 bg-primary text-white rounded-2xl shadow-[0_8px_16px_-4px_rgba(46,99,133,0.4)] flex items-center justify-center active:scale-90 transition-transform z-40"
+      class="fixed left-6 bottom-32 w-14 h-14 bg-primary text-white rounded-2xl shadow-[0_8px_16px_-4px_rgba(46,99,133,0.4)] flex items-center justify-center active:scale-90 transition-transform z-40"
       @click="showAddHomework = true"
     >
       <span class="material-symbols-outlined">add</span>
