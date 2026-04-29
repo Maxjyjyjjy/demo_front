@@ -51,6 +51,16 @@
           <p v-else class="text-label-sm text-on-surface-variant text-center">
             请使用后台账号密码登录（如 demo / demo123）
           </p>
+
+          <p v-if="registeredHint" class="text-label-sm text-primary text-center">
+            {{ registeredHint }}
+          </p>
+
+          <p class="text-label-sm text-on-surface-variant text-center">
+            <RouterLink to="/register" class="font-semibold text-primary hover:opacity-80">
+              没有账号？注册
+            </RouterLink>
+          </p>
         </form>
       </div>
     </div>
@@ -58,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loginWithPassword } from '../services/authService'
 
@@ -70,6 +80,10 @@ const username = ref('')
 const password = ref('')
 const error = ref('')
 const submitting = ref(false)
+
+const registeredHint = computed(() =>
+  route.query.registered === '1' ? '注册成功，请登录' : ''
+)
 
 async function handleSubmit() {
   error.value = ''

@@ -9,6 +9,12 @@ const routes = [
     meta: { public: true, hideChrome: true }
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/RegisterView.vue'),
+    meta: { public: true, hideChrome: true }
+  },
+  {
     path: '/',
     name: 'Schedule',
     component: () => import('../views/ScheduleView.vue')
@@ -39,7 +45,7 @@ const router = createRouter({
  */
 router.beforeEach((to) => {
   if (to.meta?.public) {
-    if (to.name === 'Login' && isLoggedIn()) {
+    if ((to.name === 'Login' || to.name === 'Register') && isLoggedIn()) {
       return { path: '/', replace: true }
     }
     return true

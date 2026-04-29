@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e1e2e5",
+                        "secondary-fixed": "#b2f2bb",
+                        "surface-bright": "#f9f9fc",
+                        "tertiary-fixed": "#ffd9e2",
+                        "on-surface-variant": "#41484d",
+                        "tertiary-container": "#f0c8d2",
+                        "inverse-surface": "#2e3133",
+                        "on-secondary-fixed-variant": "#145129",
+                        "inverse-primary": "#9accf3",
+                        "surface-container-low": "#f3f3f6",
+                        "secondary": "#2f6a3f",
+                        "outline": "#71787e",
+                        "primary-fixed-dim": "#9accf3",
+                        "on-secondary-container": "#357044",
+                        "on-primary-fixed": "#001e2f",
+                        "surface-container": "#edeef1",
+                        "on-secondary-fixed": "#00210b",
+                        "on-tertiary-container": "#70525a",
+                        "primary": "#2e6385",
+                        "outline-variant": "#c1c7ce",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#c9e6ff",
+                        "tertiary": "#75565f",
+                        "on-tertiary-fixed-variant": "#5b3f47",
+                        "primary-container": "#a5d8ff",
+                        "on-primary-container": "#285f80",
+                        "secondary-container": "#b2f2bb",
+                        "on-surface": "#191c1e",
+                        "on-primary-fixed-variant": "#0c4b6c",
+                        "background": "#f9f9fc",
+                        "inverse-on-surface": "#f0f0f4",
+                        "surface-dim": "#d9dadd",
+                        "secondary-fixed-dim": "#96d5a0",
+                        "on-tertiary-fixed": "#2b151c",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#2e6385",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#e4bcc6",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f9f9fc",
+                        "surface-variant": "#e1e2e5",
+                        "surface-container-high": "#e7e8eb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "sm": "8px",
+                        "gutter": "12px",
+                        "xl": "32px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "container-padding": "20px"
+                    },
+                    "fontFamily": {
+                        "h2": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "h3": ["Plus Jakarta Sans"],
+                        "h1": ["Plus Jakarta Sans"],
+                        "label-xs": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "h2": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                        "h3": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "h1": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-xs": ["10px", {"lineHeight": "12px", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        body {
+            background-color: #f9f9fc;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-body-md text-on-surface">
+<!-- TopAppBar Section -->
+<header class="bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md border-none docked full-width top-0 sticky z-50 flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform duration-200 text-blue-400 dark:text-blue-300 hover:opacity-70 transition-opacity">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+</div>
+<h1 class="font-['Plus_Jakarta_Sans'] font-semibold text-lg text-on-surface">Create Account</h1>
+<div class="w-6"></div> <!-- Spacer for center alignment -->
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center px-container-padding py-xl max-w-lg mx-auto w-full">
+<!-- Hero Visual Section -->
+<div class="w-full mb-xl overflow-hidden rounded-[32px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] bg-white">
+<img alt="Students collaborating" class="w-full h-48 opacity-90 object-contain h-auto max-h-64" data-alt="A clean, flat illustration of three diverse students standing together, shown from the waist up. One student is holding a tablet, others are carrying backpacks." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB21jKVDDzo85PK03WFvZltHqx8beMOXm-jz_686uHhOMdtMvFXEx66HDgcKoDq3ekh70K8mlG9KT4tVfhu64qGV7r7iDdB5ynEFaZmDkbGrfdqdi9MD2DSK5woh2oFihYPwYWE6tBgtaZv1PsD4Ni3l7MhL_D0RAfyXdxAeeGXmbrpfzzwKasDfJM2AvEMvRSD24O7daizkPu_jYDbo1Y2kupTIKFBECtPN27D2Q6zGfuHfOhe_sRaIa0px0UnRjRtIP2MUTDtw8CC"/>
+</div>
+<!-- Registration Form Container -->
+<div class="w-full space-y-lg">
+<div class="text-center mb-xl">
+<h2 class="font-h1 text-h1 text-on-surface mb-sm">Join CourseFlow</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage your schedule with ease and calm.</p>
+</div>
+<form class="space-y-md">
+<!-- Username Field -->
+<div class="space-y-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant ml-sm" for="username">Username</label>
+<div class="relative group">
+<input class="w-full px-md py-4 bg-surface-container-low border-none rounded-[20px] font-body-lg text-body-lg focus:ring-2 focus:ring-primary-container focus:bg-surface-container transition-all placeholder:text-outline-variant outline-none" id="username" placeholder="Choose a unique name" type="text"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary" data-icon="person">person</span>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant ml-sm" for="password">Password</label>
+<div class="relative group">
+<input class="w-full px-md py-4 bg-surface-container-low border-none rounded-[20px] font-body-lg text-body-lg focus:ring-2 focus:ring-primary-container focus:bg-surface-container transition-all placeholder:text-outline-variant outline-none" id="password" placeholder="Min. 8 characters" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary" data-icon="lock">lock</span>
+</div>
+</div>
+<!-- Action Button -->
+<div class="pt-md">
+<button class="w-full py-4 bg-primary text-on-primary rounded-full font-h3 text-h3 shadow-[0_4px_12px_rgba(46,99,133,0.2)] active:scale-[0.98] transition-all hover:bg-on-primary-fixed-variant" type="submit">
+                        Sign Up
+                    </button>
+</div>
+</form>
+<!-- Secondary Actions -->
+<div class="text-center pt-lg">
+<a class="font-body-md text-body-md text-primary font-semibold hover:opacity-70 transition-opacity" href="#">
+                    Already have an account? Log In
+                </a>
+</div>
+</div>
+<!-- Decorative Floating Elements -->
+<div class="mt-xl flex gap-gutter opacity-30 pointer-events-none">
+<div class="w-12 h-12 rounded-full bg-primary-container blur-sm"></div>
+<div class="w-16 h-16 rounded-full bg-secondary-container blur-sm translate-y-4"></div>
+<div class="w-10 h-10 rounded-full bg-tertiary-container blur-sm"></div>
+</div>
+</main>
+<!-- Success Confirmation Decoration (Implicit task-focused design) -->
+<footer class="mt-auto px-container-padding pb-xl text-center">
+<p class="font-label-xs text-label-xs text-outline-variant">
+            By signing up, you agree to our Terms and Privacy Policy.
+        </p>
+</footer>
+</body></html>

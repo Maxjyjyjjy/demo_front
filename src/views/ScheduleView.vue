@@ -99,7 +99,11 @@
 
         <p v-if="dropHint" class="text-label-sm text-primary text-center -mt-1 mb-3">{{ dropHint }}</p>
 
-        <div ref="timelineScrollEl" class="overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing pb-14">
+        <div
+          ref="timelineScrollEl"
+          class="overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing pb-14"
+          @dragover.prevent="onTimelineDragOver"
+        >
           <div class="flex pb-4" :style="{ minWidth: `${timelineMinWidth}px` }">
             <div
               v-for="slot in timeSlots"
@@ -157,8 +161,13 @@
 
     <!-- FAB -->
     <button
-      class="fixed bottom-24 right-8 w-14 h-14 bg-primary text-white rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center active:scale-90 transition-all duration-300 z-40"
-      @click="showAddModal = true"
+      class="fixed w-14 h-14 bg-primary text-white rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center active:scale-90 transition-all duration-300 z-40"
+      :style="fabStyle"
+      @pointerdown="onFabPointerDown"
+      @pointermove="onFabPointerMove"
+      @pointerup="onFabPointerUp"
+      @pointercancel="onFabPointerCancel"
+      @click="onFabClick"
     >
       <span class="material-symbols-outlined text-[28px]">add</span>
     </button>
@@ -277,6 +286,29 @@ const activePointerId = ref(null)
 const pendingDrag = ref(null) // { module, pointerId }
 const isTouchDragging = ref(false)
 let longPressTimer = null
+let edgeHoldTimer = null
+let edgeScrollTimer = null
+let edgeDirection = 0 // -1: 左, 1: 右, 0: 停止
+
+const EDGE_ZONE_PX = 56
+const EDGE_HOLD_MS = 2000
+const EDGE_SCROLL_STEP_PX = 24
+const EDGE_SCROLL_INTERVAL_MS = 48
+
+const fabX = ref(null)
+const fabY = ref(null)
+const fabPointerId = ref(null)
+const fabStart = ref({ x: 0, y: 0, left: 0, top: 0, moved: false })
+const suppressFabClick = ref(false)
+const fabStyle = computed(() => {
+  if (fabX.value == null || fabY.value == null) {
+    return { right: '2rem', bottom: '6rem' }
+  }
+  return {
+    left: `${fabX.value}px`,
+    top: `${fabY.value}px`
+  }
+})
 
 function showToast(message) {
   toastMessage.value = message
@@ -304,6 +336,114 @@ function clearLongPress() {
   if (longPressTimer) clearTimeout(longPressTimer)
   longPressTimer = null
   pendingDrag.value = null
+}
+
+function stopEdgeAutoScroll() {
+  if (edgeHoldTimer) clearTimeout(edgeHoldTimer)
+  edgeHoldTimer = null
+  if (edgeScrollTimer) clearInterval(edgeScrollTimer)
+  edgeScrollTimer = null
+  edgeDirection = 0
+}
+
+function applyEdgeAutoScroll(direction) {
+  if (direction === edgeDirection) return
+  stopEdgeAutoScroll()
+  if (!direction) return
+  edgeDirection = direction
+  edgeHoldTimer = setTimeout(() => {
+    edgeScrollTimer = setInterval(() => {
+      const root = timelineScrollEl.value
+      if (!root) return
+      root.scrollLeft += edgeDirection * EDGE_SCROLL_STEP_PX
+    }, EDGE_SCROLL_INTERVAL_MS)
+  }, EDGE_HOLD_MS)
+}
+
+function updateEdgeAutoScrollByX(clientX) {
+  const root = timelineScrollEl.value
+  if (!root) return
+  const rect = root.getBoundingClientRect()
+  const inY = clientX >= rect.left && clientX <= rect.right
+  if (!inY) {
+    stopEdgeAutoScroll()
+    return
+  }
+  if (clientX <= rect.left + EDGE_ZONE_PX) {
+    applyEdgeAutoScroll(-1)
+    return
+  }
+  if (clientX >= rect.right - EDGE_ZONE_PX) {
+    applyEdgeAutoScroll(1)
+    return
+  }
+  stopEdgeAutoScroll()
+}
+
+function initFabPositionIfNeeded() {
+  if (fabX.value != null && fabY.value != null) return
+  const width = window.innerWidth
+  const height = window.innerHeight
+  fabX.value = Math.max(16, width - 32 - 56)
+  fabY.value = Math.max(16, height - 96 - 56)
+}
+
+function clampFab(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function onFabPointerDown(e) {
+  initFabPositionIfNeeded()
+  fabPointerId.value = e.pointerId
+  fabStart.value = {
+    x: e.clientX,
+    y: e.clientY,
+    left: fabX.value ?? 0,
+    top: fabY.value ?? 0,
+    moved: false
+  }
+  try {
+    e.currentTarget?.setPointerCapture?.(e.pointerId)
+  } catch {
+    /* ignore */
+  }
+}
+
+function onFabPointerMove(e) {
+  if (fabPointerId.value == null || fabPointerId.value !== e.pointerId) return
+  const dx = e.clientX - fabStart.value.x
+  const dy = e.clientY - fabStart.value.y
+  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+    fabStart.value.moved = true
+  }
+  const maxLeft = Math.max(16, window.innerWidth - 16 - 56)
+  const maxTop = Math.max(16, window.innerHeight - 16 - 56)
+  fabX.value = clampFab(fabStart.value.left + dx, 16, maxLeft)
+  fabY.value = clampFab(fabStart.value.top + dy, 16, maxTop)
+}
+
+function endFabDrag(pointerId) {
+  if (fabPointerId.value == null || fabPointerId.value !== pointerId) return
+  suppressFabClick.value = fabStart.value.moved
+  if (suppressFabClick.value) {
+    setTimeout(() => {
+      suppressFabClick.value = false
+    }, 120)
+  }
+  fabPointerId.value = null
+}
+
+function onFabPointerUp(e) {
+  endFabDrag(e.pointerId)
+}
+
+function onFabPointerCancel(e) {
+  endFabDrag(e.pointerId)
+}
+
+function onFabClick() {
+  if (suppressFabClick.value) return
+  showAddModal.value = true
 }
 
 function findSlotKeyFromPoint(clientX, clientY) {
@@ -347,6 +487,7 @@ function onModulePointerMove(e) {
 
   const key = findSlotKeyFromPoint(e.clientX, e.clientY)
   dropTargetKey.value = key
+  updateEdgeAutoScrollByX(e.clientX)
   e.preventDefault()
 }
 
@@ -359,6 +500,7 @@ function commitTouchDrop(slotKey) {
 
 function endTouchDrag() {
   clearLongPress()
+  stopEdgeAutoScroll()
   isTouchDragging.value = false
   activePointerId.value = null
   draggingModuleId.value = null
@@ -403,6 +545,7 @@ function onModuleDragStart(e, course) {
 }
 
 function onModuleDragEnd() {
+  stopEdgeAutoScroll()
   draggingModuleId.value = null
   dropTargetKey.value = null
   dropHint.value = ''
@@ -412,6 +555,12 @@ function onSlotDragOver(e, slotKey) {
   if (!draggingModuleId.value) return
   e.dataTransfer.dropEffect = 'copy'
   dropTargetKey.value = slotKey
+  updateEdgeAutoScrollByX(e.clientX)
+}
+
+function onTimelineDragOver(e) {
+  if (!draggingModuleId.value) return
+  updateEdgeAutoScrollByX(e.clientX)
 }
 
 function onDropOnSlot(e, slotKey) {
