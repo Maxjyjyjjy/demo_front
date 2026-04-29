@@ -285,7 +285,6 @@ let edgeHoldTimer = null
 let edgeScrollTimer = null
 let edgeDirection = 0 // -1: 左, 1: 右, 0: 停止
 
-const EDGE_ZONE_PX = 96
 const EDGE_HOLD_MS = 1200
 const EDGE_SCROLL_STEP_PX = 24
 const EDGE_SCROLL_INTERVAL_MS = 48
@@ -344,16 +343,16 @@ function updateEdgeAutoScrollByX(clientX) {
   const root = timelineScrollEl.value
   if (!root) return
   const rect = root.getBoundingClientRect()
-  const inY = clientX >= rect.left && clientX <= rect.right
-  if (!inY) {
-    stopEdgeAutoScroll()
-    return
-  }
-  if (clientX <= rect.left + EDGE_ZONE_PX) {
+  const width = rect.width || 0
+  const zone = width * 0.25
+
+  // 左侧：进入左 25% 或超出左边界，都触发向左自动滑动
+  if (clientX <= rect.left + zone) {
     applyEdgeAutoScroll(-1)
     return
   }
-  if (clientX >= rect.right - EDGE_ZONE_PX) {
+  // 右侧：进入右 25% 或超出右边界，都触发向右自动滑动
+  if (clientX >= rect.right - zone) {
     applyEdgeAutoScroll(1)
     return
   }
