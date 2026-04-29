@@ -288,6 +288,8 @@ let edgeDirection = 0 // -1: 左, 1: 右, 0: 停止
 const EDGE_HOLD_MS = 1200
 const EDGE_SCROLL_STEP_PX = 24
 const EDGE_SCROLL_INTERVAL_MS = 48
+const FALLBACK_DRAG_WIDTH = 88
+const dragVisualWidth = ref(FALLBACK_DRAG_WIDTH)
 
 function showToast(message) {
   toastMessage.value = message
@@ -343,16 +345,17 @@ function updateEdgeAutoScrollByX(clientX) {
   const root = timelineScrollEl.value
   if (!root) return
   const rect = root.getBoundingClientRect()
-  const width = rect.width || 0
-  const zone = width * 0.25
+  const half = (dragVisualWidth.value || FALLBACK_DRAG_WIDTH) / 2
+  const dragLeft = clientX - half
+  const dragRight = clientX + half
 
-  // 左侧：进入左 25% 或超出左边界，都触发向左自动滑动
-  if (clientX <= rect.left + zone) {
+  // 卡片与左边缘发生重叠（或超出）
+  if (dragLeft <= rect.left) {
     applyEdgeAutoScroll(-1)
     return
   }
-  // 右侧：进入右 25% 或超出右边界，都触发向右自动滑动
-  if (clientX >= rect.right - zone) {
+  // 卡片与右边缘发生重叠（或超出）
+  if (dragRight >= rect.right) {
     applyEdgeAutoScroll(1)
     return
   }
@@ -375,6 +378,7 @@ function onModulePointerDown(e, module) {
   // Only improve touch UX; keep desktop native drag intact
   if (e.pointerType !== 'touch') return
   activePointerId.value = e.pointerId
+  dragVisualWidth.value = e.currentTarget?.getBoundingClientRect?.().width || FALLBACK_DRAG_WIDTH
   pendingDrag.value = { module, pointerId: e.pointerId }
 
   clearLongPress()
@@ -442,6 +446,7 @@ const DRAG_MIME = 'application/x-demo-course-module'
 
 function onModuleDragStart(e, course) {
   draggingModuleId.value = course.id
+  dragVisualWidth.value = e.currentTarget?.getBoundingClientRect?.().width || FALLBACK_DRAG_WIDTH
   dropHint.value = '将模块拖到下方对应时间段'
   try {
     const payload = JSON.stringify({

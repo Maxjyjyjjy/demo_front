@@ -97,7 +97,11 @@
 
         <p v-if="dropHint" class="text-label-sm text-primary text-center -mt-1 mb-3">{{ dropHint }}</p>
 
-        <div ref="timelineScrollEl" class="overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing pb-14">
+        <div
+          ref="timelineScrollEl"
+          class="overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing pb-14"
+          @dragover.prevent="onTimelineDragOver"
+        >
           <div class="flex pb-4" :style="{ minWidth: `${timelineMinWidth}px` }">
             <div
               v-for="slot in timeSlots"
@@ -247,6 +251,14 @@ const homework = ref([])
 const showAddHomework = ref(false)
 const showAddQuickTask = ref(false)
 const timelineScrollEl = ref(null)
+let edgeHoldTimer = null
+let edgeScrollTimer = null
+let edgeDirection = 0 // -1 左, 1 右, 0 停止
+const EDGE_HOLD_MS = 1200
+const EDGE_SCROLL_STEP_PX = 24
+const EDGE_SCROLL_INTERVAL_MS = 48
+const FALLBACK_DRAG_WIDTH = 96
+const dragVisualWidth = ref(FALLBACK_DRAG_WIDTH)
 
 const dayIso = computed(() => {
   const d = currentDate.value
@@ -418,6 +430,7 @@ const timeSlots = computed(() => {
 
 function onHomeworkDragStart(e, hw) {
   dropHint.value = '将作业拖到下方对应时间段'
+  dragVisualWidth.value = e.currentTarget?.getBoundingClientRect?.().width || FALLBACK_DRAG_WIDTH
   try {
     e.dataTransfer.setData(DRAG_MIME, JSON.stringify(hw))
     e.dataTransfer.setData('text/plain', hw.title)
@@ -428,6 +441,7 @@ function onHomeworkDragStart(e, hw) {
 }
 
 function onHomeworkDragEnd() {
+  stopEdgeAutoScroll()
   dropHint.value = ''
   dropTargetKey.value = null
 }
@@ -435,6 +449,51 @@ function onHomeworkDragEnd() {
 function onSlotDragOver(e, slotKey) {
   e.dataTransfer.dropEffect = 'copy'
   dropTargetKey.value = slotKey
+  updateEdgeAutoScrollByX(e.clientX)
+}
+
+function onTimelineDragOver(e) {
+  updateEdgeAutoScrollByX(e.clientX)
+}
+
+function stopEdgeAutoScroll() {
+  if (edgeHoldTimer) clearTimeout(edgeHoldTimer)
+  edgeHoldTimer = null
+  if (edgeScrollTimer) clearInterval(edgeScrollTimer)
+  edgeScrollTimer = null
+  edgeDirection = 0
+}
+
+function applyEdgeAutoScroll(direction) {
+  if (edgeDirection === direction) return
+  stopEdgeAutoScroll()
+  if (!direction) return
+  edgeDirection = direction
+  edgeHoldTimer = setTimeout(() => {
+    edgeScrollTimer = setInterval(() => {
+      const root = timelineScrollEl.value
+      if (!root) return
+      root.scrollLeft += edgeDirection * EDGE_SCROLL_STEP_PX
+    }, EDGE_SCROLL_INTERVAL_MS)
+  }, EDGE_HOLD_MS)
+}
+
+function updateEdgeAutoScrollByX(clientX) {
+  const root = timelineScrollEl.value
+  if (!root) return
+  const rect = root.getBoundingClientRect()
+  const half = (dragVisualWidth.value || FALLBACK_DRAG_WIDTH) / 2
+  const dragLeft = clientX - half
+  const dragRight = clientX + half
+  if (dragLeft <= rect.left) {
+    applyEdgeAutoScroll(-1)
+    return
+  }
+  if (dragRight >= rect.right) {
+    applyEdgeAutoScroll(1)
+    return
+  }
+  stopEdgeAutoScroll()
 }
 
 async function onDropOnSlot(e, slotKey) {
@@ -479,6 +538,7 @@ async function onDropOnSlot(e, slotKey) {
   const existing = day[slotKey] || []
   day[slotKey] = [...existing, entry]
   scheduleByDate.value = { ...scheduleByDate.value, [iso]: day }
+  stopEdgeAutoScroll()
   onHomeworkDragEnd()
 }
 
