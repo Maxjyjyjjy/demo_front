@@ -30,6 +30,11 @@ const routes = [
     component: () => import('../views/HomeworkView.vue')
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../views/ProfileView.vue')
+  },
+  {
     path: '/library',
     redirect: '/homework'
   }

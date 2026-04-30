@@ -20,7 +20,8 @@ const route = useRoute()
 
 const navItems = [
   { name: 'schedule', path: '/', icon: 'calendar_view_day', label: 'Schedule' },
-  { name: 'homework', path: '/homework', icon: 'assignment', label: 'Homework' }
+  { name: 'homework', path: '/homework', icon: 'assignment', label: 'Homework' },
+  { name: 'profile', path: '/profile', icon: 'account_circle', label: 'Profile' }
 ]
 
 function isActive(path) {
@@ -32,6 +33,7 @@ const inactiveClass = 'text-slate-400 hover:text-blue-400'
 
 function activeClass(item) {
   if (item.path === '/homework') return 'bg-blue-50 text-blue-600'
+  if (item.path === '/profile') return 'bg-blue-50 text-blue-600'
   return 'bg-blue-50/50 text-blue-500'
 }
 </script>

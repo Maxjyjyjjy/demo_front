@@ -58,7 +58,7 @@
           </div>
 
           <div class="space-y-1">
-            <h3 class="text-h3" :class="homeworkTextClass(hw)">{{ hw.title }}</h3>
+            <h3 class="text-h3 line-clamp-2" :class="homeworkTextClass(hw)">{{ hw.title }}</h3>
             <p class="text-label-sm" :class="homeworkMetaClass(hw)">截止：{{ formatDue(hw.dueAt) }}</p>
           </div>
         </div>
@@ -199,7 +199,8 @@ import {
   createHomeworkScheduleEntry,
   deleteHomeworkById,
   deleteHomeworkScheduleEntry,
-  fetchAllHomework
+  fetchAllHomework,
+  fetchHomeworkFromEmail
 } from '../services/homeworkService'
 import {
   createQuickTask as createQuickTaskApi,
@@ -307,8 +308,16 @@ const confirm = ref({
 
 onMounted(async () => {
   try {
+    // 页面加载时先触发“邮件同步入库”，再刷新作业列表
+    const fromEmailList = await fetchHomeworkFromEmail()
     const [h, q] = await Promise.all([fetchAllHomework(), fetchQuickTasks()])
-    homework.value = h
+
+    // 如果后端未立刻把邮件作业写入/刷新不及时，这里做一次合并兜底
+    const map = new Map((Array.isArray(h) ? h : []).map((x) => [x.id, x]))
+    for (const item of Array.isArray(fromEmailList) ? fromEmailList : []) {
+      if (item?.id != null) map.set(item.id, item)
+    }
+    homework.value = Array.from(map.values())
     quickTasks.value = q
   } catch (e) {
     apiHint.value = e?.message || '加载失败'
